@@ -1,0 +1,52 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<rss version="2.0">
+  <channel>
+    <title>We Work Remotely: Product Jobs</title>
+    <link>https://weworkremotely.com/categories/remote-product-jobs.rss</link>
+    <description>We Work Remotely: Product Jobs</description>
+    <language>en-US</language>
+    <ttl>60</ttl>
+    <item>
+      <title>Smartsheet: Product Operations Manager (Remote Eligible)</title>
+      <region>Anywhere in the World</region>
+      <country />
+      <state />
+      <skills />
+      <category>Product</category>
+      <type>Full-Time</type>
+      <description>&lt;h3&gt;About the role&lt;/h3&gt;&lt;p class="editor-paragraph"&gt;Placeholder description for tests. Original listing text removed so the public repo does not republish board content.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;First responsibility&lt;/li&gt;&lt;li&gt;Second responsibility&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;Fixture&amp;nbsp;item 1.&lt;/p&gt;</description>
+      <pubDate>Wed, 25 Nov 2026 06:02:20 +0000</pubDate>
+      <expires_at>Fri, 25 Dec 2026 06:02:20 +0000</expires_at>
+      <guid>https://weworkremotely.com/remote-jobs/smartsheet-product-operations-manager-remote-eligible</guid>
+      <link>https://weworkremotely.com/remote-jobs/smartsheet-product-operations-manager-remote-eligible</link>
+    </item>
+    <item>
+      <title>Maven Clinic: Product Manager, Care Delivery</title>
+      <region>Anywhere in the World</region>
+      <country />
+      <state />
+      <skills />
+      <category>Product</category>
+      <type>Full-Time</type>
+      <description>&lt;h3&gt;About the role&lt;/h3&gt;&lt;p class="editor-paragraph"&gt;Placeholder description for tests. Original listing text removed so the public repo does not republish board content.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;First responsibility&lt;/li&gt;&lt;li&gt;Second responsibility&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;Fixture&amp;nbsp;item 2.&lt;/p&gt;</description>
+      <pubDate>Tue, 24 Nov 2026 18:32:23 +0000</pubDate>
+      <expires_at>Thu, 24 Dec 2026 18:32:23 +0000</expires_at>
+      <guid>https://weworkremotely.com/remote-jobs/maven-clinic-product-manager-care-delivery</guid>
+      <link>https://weworkremotely.com/remote-jobs/maven-clinic-product-manager-care-delivery</link>
+    </item>
+    <item>
+      <title>Fivetran : Manager, Technical Enablement</title>
+      <region>Anywhere in the World</region>
+      <country>🇺🇸 United States of America</country>
+      <state />
+      <skills />
+      <category>Product</category>
+      <type>Full-Time</type>
+      <description>&lt;h3&gt;About the role&lt;/h3&gt;&lt;p class="editor-paragraph"&gt;Placeholder description for tests. Original listing text removed so the public repo does not republish board content.&lt;/p&gt;&lt;ul&gt;&lt;li&gt;First responsibility&lt;/li&gt;&lt;li&gt;Second responsibility&lt;/li&gt;&lt;/ul&gt;&lt;p&gt;Fixture&amp;nbsp;item 3.&lt;/p&gt;</description>
+      <pubDate>Tue, 24 Nov 2026 18:32:09 +0000</pubDate>
+      <expires_at>Thu, 24 Dec 2026 18:32:09 +0000</expires_at>
+      <guid>https://weworkremotely.com/remote-jobs/fivetran-manager-technical-enablement</guid>
+      <link>https://weworkremotely.com/remote-jobs/fivetran-manager-technical-enablement</link>
+    </item>
+    </channel>
+</rss>

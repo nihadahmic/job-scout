@@ -7,3 +7,6 @@ __pycache__/
 .env
 private/
 .DS_Store
+# Collected data never goes in this repo. Local runs write here; CI writes to the private data repo.
+data/*
+!data/.gitkeep

@@ -23,7 +23,7 @@ This is also a portfolio piece, so keep the code clean, the README clear, and th
 Scheduling: GitHub Actions cron, daily at 07:30 UTC.
 
 ## Storage
-- Steps 1-2: `data/jobs.sqlite` (or `data/jobs.json`) committed by the GitHub Action after each run.
+- Steps 1-2: `jobs.sqlite` committed by the GitHub Action after each run to a separate private repo (`job-scout-data`), never to this public code repo. Local runs write to `data/` (gitignored). Private config such as `applied.yaml` lives in the data repo too; this repo keeps `.example` files. See `docs/decisions.md` #008.
 - Step 3 onward: migrate to Supabase (Postgres, free tier) with Supabase Auth for the review app. Keep the schema the same so the migration is a straight copy.
 
 Job schema (start here, extend as needed): `id` (source + source_id), `source`, `url`, `company`, `title`, `location_text`, `remote` (bool), `posted_at`, `description`, `salary_text`, `apply_url`, `first_seen_at`, then screening fields `tier`, `fit`, `fit_reason`, `eligibility_note`, `dropped_reason`, then review fields `status` (new, shortlisted, approved, skipped, applied, blocked), `cover_letter`, `answers` (json), `salary_answer`, `applied_at`, `reply` (none, rejected, interview, offer).

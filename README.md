@@ -25,7 +25,7 @@ GitHub Actions (07:30 UTC daily)
             │  fetch() -> RawJob      (network)
             │  normalize() -> Job     (pure)
             ▼
-       dedupe (id, then company+title)  →  data/jobs.sqlite  →  git commit
+       dedupe (id, then company+title)  →  jobs.sqlite  →  commit to private data repo
 ```
 
 Each run prints one line:
@@ -50,6 +50,19 @@ make lint
 
 Options: `uv run python -m collector --only himalayas remotive --db /tmp/test.sqlite`.
 
+## Where the data lives
+
+This repo holds code only. Collected listings, and later screening results and application history, go to a separate **private** repo (`<owner>/job-scout-data` by default). Job descriptions belong to the boards they came from, and an application history isn't something to publish. Local runs write to `data/`, which is gitignored. From step 3 the data moves to Supabase.
+
+To set up the scheduled run:
+
+1. Create the private data repo with a README so it isn't empty: `gh repo create job-scout-data --private --add-readme`.
+2. Create a [fine-grained token](https://github.com/settings/personal-access-tokens/new) with access to that repo only and the permission **Contents: read and write**.
+3. Add it to this repo as the Actions secret `DATA_REPO_TOKEN`. To use a different repo name, set the Actions variable `DATA_REPO` to `owner/name`.
+4. Run the `collect` workflow by hand once from the Actions tab.
+
+The workflow's public run log shows counts only, never listing content.
+
 ## Configuration
 
 - `config/sources.yaml`: which sources run, search queries, User-Agent and request delay.
@@ -66,7 +79,7 @@ collector/
   text.py          HTML to text, dedupe key, dates
   sources/         one module per source
 config/            YAML config
-data/              jobs.sqlite (committed by CI)
+data/              local runs only (gitignored)
 docs/decisions.md  design decisions
 tests/             pytest + saved fixture responses
 ```

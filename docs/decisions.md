@@ -6,9 +6,9 @@ Short ADR-style notes. Newest at the bottom.
 **Date:** 2026-11-25
 The pipeline is built in order: collector, screening, review app, drafting, metrics. Each step writes to the same `jobs` table, so a step can run without the ones after it. The collector on its own already gives a deduplicated daily list in `data/jobs.sqlite`.
 
-## 002. SQLite committed to the repo until the review app exists
+## 002. SQLite committed by CI until the review app exists
 **Date:** 2026-11-25
-`data/jobs.sqlite` is committed by the GitHub Action after each run. No server, no credentials, and the history is in git. The table already has the screening and review columns (null for now) so the move to Supabase in step 3 is a straight copy.
+`jobs.sqlite` is committed by the GitHub Action after each run (to the private data repo, see 008). No server, no credentials, and the history is in git. The table already has the screening and review columns (null for now) so the move to Supabase in step 3 is a straight copy.
 Trade-off: git stores a new copy of the binary file on every run that adds jobs. At current volumes (tens of new rows a day) that is a few MB a month, acceptable until the Supabase migration.
 
 ## 003. One module per source, fetch and normalize split
@@ -32,3 +32,9 @@ As of November 2026 the public Remotive endpoint ignores `category`, `search` an
 ## 007. HTML stripped at collection time
 **Date:** 2026-11-25
 Descriptions are converted to plain text (paragraph and list breaks kept) with the stdlib HTML parser. Screening sends text to Gemini, and plain text is a fraction of the tokens.
+
+## 008. Public code, private data repo
+**Date:** 2026-11-25
+The code repo is public as a portfolio piece. The data goes to a separate private repo (`job-scout-data`) that the workflow checks out with a fine-grained token scoped to that repo.
+Reasons: job descriptions belong to the boards (Remotive's terms forbid republishing its listings), and from step 2 on the data includes where applications went, fit notes, drafts and salary answers. Keeping one private repo from day one also keeps those copies out of the public repo's git history, which a later "flip to public" would expose.
+Private inputs that arrive in later steps (`config/applied.yaml`, the real profile) live in the data repo too. The public repo keeps `.example` versions. The data repo can be archived once Supabase takes over in step 3.

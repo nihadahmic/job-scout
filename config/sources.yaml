@@ -1,0 +1,31 @@
+# Public sources the collector pulls from. Each key matches a module in collector/sources/.
+# Set enabled: false to skip a source without deleting its config.
+
+http:
+  user_agent: "job-scout/0.1 (personal job search tool; one request per page, daily)"
+  delay_seconds: 1.5
+  timeout_seconds: 30
+
+himalayas:
+  enabled: true
+  # Search endpoint, filtered server-side to listings open to this country.
+  # Listings with no location restriction (worldwide) are included by Himalayas too.
+  country: "Bosnia and Herzegovina"
+  max_pages_per_query: 3   # 20 results per page
+  queries:
+    - product manager
+    - product owner
+    - business analyst
+    - implementation manager
+    - technical project manager
+
+remotive:
+  enabled: true
+  # Remotive asks for at most 4 calls a day. As of 2026-11 the public endpoint ignores
+  # category/search params and returns the same ~16 recent jobs, so one call is enough.
+  url: "https://remotive.com/api/remote-jobs"
+
+weworkremotely:
+  enabled: true
+  feeds:
+    - https://weworkremotely.com/categories/remote-product-jobs.rss

@@ -121,6 +121,7 @@ export const CLOSE_REASONS = [
   { label: "Withdrew: not a fit", status: "withdrawn", by: "me" },
   { label: "Withdrew: salary", status: "withdrawn", by: "me" },
   { label: "Declined offer", status: "declined", by: "me" },
+  { label: "Skipped (didn't apply)", status: "skipped", by: "me" },
 ] as const satisfies readonly { label: string; status: Status; by: "company" | "me" }[];
 
 export function closeReasonTone(reason: string | null, status: Status): "company" | "me" {

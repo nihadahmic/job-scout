@@ -6,9 +6,8 @@ import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
 
-const WEEKS_IN_CHART = 12;
-const WEEKS_IN_CALENDAR = 26;
 const FOLLOW_UP_DAYS = 10;
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 type App = {
   id: string;
@@ -31,7 +30,7 @@ const RANGES = { "90": "Last 90 days", "365": "Last 12 months", all: "All time" 
 export default async function InsightsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ day?: string; week?: string; range?: string }>;
+  searchParams: Promise<{ day?: string; week?: string; range?: string; month?: string }>;
 }) {
   const params = await searchParams;
   const range = (params.range && params.range in RANGES ? params.range : "all") as keyof typeof RANGES;
@@ -57,9 +56,6 @@ export default async function InsightsPage({
     for (let i = 0; i < 7; i++) n += perDay.get(addDays(start, i)) ?? 0;
     return n;
   };
-  const weeks = Array.from({ length: WEEKS_IN_CHART }, (_, i) => addDays(thisWeek, -7 * (WEEKS_IN_CHART - 1 - i)));
-  const weekCounts = weeks.map(weekCount);
-  const maxWeek = Math.max(1, ...weekCounts);
   const lastWeek = weekCount(addDays(thisWeek, -7));
   const avg4 = Math.round(([1, 2, 3, 4].reduce((s, i) => s + weekCount(addDays(thisWeek, -7 * i)), 0) / 4) * 10) / 10;
 
@@ -92,16 +88,42 @@ export default async function InsightsPage({
   const bySource = breakdown((a) => SOURCE_LABELS[a.source] ?? a.source);
   const byCategory = breakdown((a) => CATEGORY_LABELS[a.category ?? ""] ?? "Other");
 
-  // Calendar
-  const calStart = addDays(thisWeek, -7 * (WEEKS_IN_CALENDAR - 1));
+  // Month calendar (Monday to Sunday) and the year around it
+  const thisMonth = now.slice(0, 7);
+  const month = /^\d{4}-\d{2}$/.test(params.month ?? "") && params.month! <= thisMonth ? params.month! : thisMonth;
+  const [year, monthNo] = month.split("-").map(Number);
+  const monthStart = `${month}-01`;
+  const monthEnd = new Date(Date.UTC(year, monthNo, 0)).toISOString().slice(0, 10);
+  const gridStart = weekStart(monthStart);
+  const gridWeeks: string[] = [];
+  for (let w = gridStart; w <= monthEnd; w = addDays(w, 7)) gridWeeks.push(w);
+  const monthTotal = apps.filter((a) => a.applied_day.startsWith(month)).length;
+  const shiftMonth = (delta: number) => {
+    const d = new Date(Date.UTC(year, monthNo - 1 + delta, 1));
+    return d.toISOString().slice(0, 7);
+  };
+  const monthName = new Date(Date.UTC(year, monthNo - 1, 1)).toLocaleDateString("en-GB", {
+    month: "long",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+  const maxDay = Math.max(1, ...[...perDay.values()]);
   const shade = (n: number) =>
     n === 0
-      ? "bg-zinc-100 dark:bg-zinc-800"
-      : n === 1
-        ? "bg-sky-200 dark:bg-sky-900"
-        : n <= 3
-          ? "bg-sky-400 dark:bg-sky-700"
-          : "bg-sky-600 dark:bg-sky-500";
+      ? "bg-white dark:bg-zinc-950"
+      : n / maxDay < 0.34
+        ? "bg-sky-100 dark:bg-sky-950"
+        : n / maxDay < 0.67
+          ? "bg-sky-300 dark:bg-sky-800"
+          : "bg-sky-500 text-white dark:bg-sky-600";
+  const yearCounts = MONTHS.map((_, i) => {
+    const key = `${year}-${String(i + 1).padStart(2, "0")}`;
+    return { key, n: apps.filter((a) => a.applied_day.startsWith(key)).length };
+  });
+  const maxMonth = Math.max(1, ...yearCounts.map((m) => m.n));
+  const yearTotal = yearCounts.reduce((sum, m) => sum + m.n, 0);
+  const href = (extra: Record<string, string>) =>
+    `/insights?${new URLSearchParams({ month, range, ...extra }).toString()}`;
 
   // Selected day or week
   const selDay = isDay(params.day) ? params.day : null;
@@ -140,26 +162,97 @@ export default async function InsightsPage({
       </section>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[1.4fr_1fr]">
-        <Card title="Applications per week">
-          <div className="flex h-36 items-end gap-1.5 border-b border-zinc-200 dark:border-zinc-800">
-            {weeks.map((w, i) => (
+        <Card
+          title={`${monthName} · ${monthTotal} applied`}
+          right={
+            <span className="flex items-center gap-1 text-sm">
+              <Link href={href({ month: shiftMonth(-1) })} className="btn-ghost px-2 py-0.5" aria-label="Previous month">
+                ‹
+              </Link>
+              {month !== thisMonth && (
+                <Link href={href({ month: thisMonth })} className="btn-ghost px-2 py-0.5 text-xs">
+                  This month
+                </Link>
+              )}
+              {month < thisMonth && (
+                <Link href={href({ month: shiftMonth(1) })} className="btn-ghost px-2 py-0.5" aria-label="Next month">
+                  ›
+                </Link>
+              )}
+            </span>
+          }
+        >
+          <div className="grid grid-cols-[repeat(7,minmax(0,1fr))_56px] gap-1 text-center">
+            {["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"].map((d) => (
+              <span key={d} className="pb-1 text-[11px] text-zinc-500">
+                {d}
+              </span>
+            ))}
+            <span className="pb-1 text-[11px] text-zinc-500">Week</span>
+            {gridWeeks.map((w) => {
+              const total = weekCount(w);
+              return [
+                ...Array.from({ length: 7 }, (_, i) => {
+                  const day = addDays(w, i);
+                  const inMonth = day.startsWith(month);
+                  const future = day > now;
+                  const n = perDay.get(day) ?? 0;
+                  const cell = (
+                    <>
+                      <span className="block text-left text-[11px] opacity-70">{Number(day.slice(8))}</span>
+                      <span className="block text-lg font-semibold tabular-nums leading-tight">{n || ""}</span>
+                    </>
+                  );
+                  const cls = `h-14 rounded-md border p-1 ${
+                    day === selDay ? "border-zinc-900 dark:border-zinc-100" : "border-zinc-200 dark:border-zinc-800"
+                  } ${shade(n)} ${inMonth ? "" : "opacity-40"} ${day === now ? "ring-2 ring-sky-400" : ""}`;
+                  return future ? (
+                    <span key={day} className={`${cls} opacity-30`}>{cell}</span>
+                  ) : (
+                    <Link key={day} href={href({ day })} title={`${shortDay(day)}: ${n} applied`} className={`${cls} hover:border-zinc-400`}>
+                      {cell}
+                    </Link>
+                  );
+                }),
+                <Link
+                  key={`${w}-total`}
+                  href={href({ week: w })}
+                  title={`Week of ${shortDay(w)}`}
+                  className={`flex h-14 flex-col items-center justify-center rounded-md text-sm tabular-nums hover:bg-zinc-100 dark:hover:bg-zinc-900 ${
+                    w === selWeek ? "bg-zinc-100 dark:bg-zinc-900" : ""
+                  } ${goal && total >= goal ? "text-emerald-700 dark:text-emerald-400" : ""}`}
+                >
+                  <span className="font-semibold">{total}</span>
+                  {goal ? <span className="text-[10px] text-zinc-500">of {goal}</span> : null}
+                </Link>,
+              ];
+            })}
+          </div>
+          <p className="mt-2 text-xs text-zinc-500">Click a day or a week total to list the applications.</p>
+        </Card>
+
+        <div className="flex flex-col gap-4">
+        <Card title={`${year} · ${yearTotal} applied`}>
+          <div className="flex h-28 items-end gap-1">
+            {yearCounts.map((m, i) => (
               <Link
-                key={w}
-                href={`/insights?week=${w}&range=${range}`}
-                title={`Week of ${shortDay(w)}: ${weekCounts[i]}`}
+                key={m.key}
+                href={href({ month: m.key })}
+                title={`${MONTHS[i]} ${year}: ${m.n}`}
                 className="group flex flex-1 flex-col items-center justify-end"
               >
-                <span className="mb-0.5 text-[11px] text-zinc-500">{weekCounts[i] || ""}</span>
+                <span className="mb-0.5 text-[11px] tabular-nums text-zinc-500">{m.n || ""}</span>
                 <span
-                  className={`w-full rounded-t ${w === thisWeek ? "bg-sky-600" : "bg-sky-300 group-hover:bg-sky-400 dark:bg-sky-800"}`}
-                  style={{ height: `${Math.max(2, (weekCounts[i] / maxWeek) * 100)}%` }}
+                  className={`w-full rounded-t ${m.key === month ? "bg-sky-600" : "bg-sky-200 group-hover:bg-sky-300 dark:bg-sky-900"}`}
+                  style={{ height: `${Math.max(2, (m.n / maxMonth) * 100)}%` }}
                 />
               </Link>
             ))}
           </div>
-          <div className="mt-1 flex justify-between text-[11px] text-zinc-500">
-            <span>{shortDay(weeks[0])}</span>
-            <span>this week</span>
+          <div className="mt-1 grid grid-cols-12 text-center text-[10px] text-zinc-500">
+            {MONTHS.map((m) => (
+              <span key={m}>{m[0]}</span>
+            ))}
           </div>
         </Card>
 
@@ -170,7 +263,7 @@ export default async function InsightsPage({
               {Object.entries(RANGES).map(([k, label]) => (
                 <Link
                   key={k}
-                  href={`/insights?range=${k}`}
+                  href={href({ range: k })}
                   className={`rounded px-1.5 py-0.5 ${k === range ? "bg-zinc-200 dark:bg-zinc-700" : "text-zinc-500 hover:underline"}`}
                 >
                   {label}
@@ -202,38 +295,14 @@ export default async function InsightsPage({
             A reply is any answer after applying, including a rejection.
           </p>
         </Card>
-      </div>
-
-      <Card title={`Applications per day · last ${WEEKS_IN_CALENDAR} weeks`} className="mt-4" right={<span className="text-xs text-zinc-500">Click a day to list it</span>}>
-        <div className="flex gap-2 overflow-x-auto">
-          <div className="grid grid-rows-7 gap-[3px] pt-0 text-[10px] leading-[12px] text-zinc-500">
-            {["Mon", "", "Wed", "", "Fri", "", "Sun"].map((d, i) => (
-              <span key={i}>{d}</span>
-            ))}
-          </div>
-          <div className="grid grid-flow-col grid-rows-7 gap-[3px]">
-            {Array.from({ length: WEEKS_IN_CALENDAR * 7 }, (_, i) => {
-              const day = addDays(calStart, i);
-              if (day > now) return <span key={day} className="h-3 w-3" />;
-              const n = perDay.get(day) ?? 0;
-              return (
-                <Link
-                  key={day}
-                  href={`/insights?day=${day}&range=${range}`}
-                  title={`${shortDay(day)}: ${n} applied`}
-                  className={`h-3 w-3 rounded-[2px] ${shade(n)} ${day === selDay ? "ring-2 ring-zinc-900 dark:ring-zinc-100" : ""}`}
-                />
-              );
-            })}
-          </div>
         </div>
-      </Card>
+      </div>
 
       {selected && (
         <Card
           className="mt-4"
           title={`${selDay ? longDay(selDay) : `Week of ${longDay(selWeek!)}`} · ${selected.length} applied`}
-          right={<Link href={`/insights?range=${range}`} className="text-xs text-zinc-500 hover:underline">Clear</Link>}
+          right={<Link href={href({})} className="text-xs text-zinc-500 hover:underline">Clear</Link>}
         >
           <AppList apps={selected} />
         </Card>

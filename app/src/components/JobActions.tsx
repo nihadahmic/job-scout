@@ -5,7 +5,7 @@ import { changeStatus, saveNotes } from "@/app/actions";
 import { StatusOptions } from "@/components/StatusSelect";
 import { CLOSE_REASONS, type Status } from "@/lib/labels";
 
-const CLOSING: Status[] = ["withdrawn", "not_moving_forward", "declined"];
+const CLOSING: Status[] = ["withdrawn", "not_moving_forward", "declined", "skipped"];
 
 export function StatusForm({
   jobId,

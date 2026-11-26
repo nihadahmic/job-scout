@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 
 const FOLLOW_UP_DAYS = 10;
 const ACTIVE: Status[] = ["in_progress", "applied", "interviewing", "offer", "accepted"];
-const CLOSED: Status[] = ["not_moving_forward", "withdrawn", "declined"];
+const CLOSED: Status[] = ["not_moving_forward", "withdrawn", "declined", "skipped"];
 
 export default async function PipelinePage({ searchParams }: { searchParams: Promise<{ closed?: string }> }) {
   const { closed } = await searchParams;

@@ -205,7 +205,7 @@ function Card({
                 : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"
             }`}
           >
-            {job.close_reason ?? "No reason recorded"}
+            {job.close_reason ?? (job.status === "skipped" ? "Skipped" : "No reason recorded")}
           </span>
         )}
         {stale ? (

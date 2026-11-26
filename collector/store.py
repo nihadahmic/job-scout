@@ -97,6 +97,14 @@ class Store:
         )
         return "new"
 
+    def mark_dropped(self, job_id: str, reason: str) -> None:
+        """Set dropped_reason on an already stored, not yet screened job."""
+        self.conn.execute(
+            "UPDATE jobs SET dropped_reason = ? "
+            "WHERE id = ? AND dropped_reason IS NULL AND tier IS NULL AND status = 'new'",
+            (reason, job_id),
+        )
+
     def record_run(self, started_at: str, finished_at: str, summary: dict) -> None:
         self.conn.execute(
             "INSERT INTO runs (started_at, finished_at, summary) VALUES (?, ?, ?)",

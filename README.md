@@ -24,17 +24,19 @@ GitHub Actions (07:30 UTC daily)
        └─ weworkremotely  product category RSS
             │  fetch() -> RawJob      (network)
             │  normalize() -> Job     (pure)
+            │  prefilter              (config/rules.yaml: title, remote, location, authorization)
             ▼
        dedupe (id, then company+title)  →  jobs.sqlite  →  commit to private data repo
 ```
 
-Each run prints one line:
+Each run prints one detail line per source, then a one-line summary:
 
 ```
-collector | himalayas fetched=… new=… known=… dup=… errors=… | remotive … | weworkremotely … | total … in_db=…
+himalayas: fetched=207 title=103 remote=103 location=99 authorization=99 new=91 known=0 dup=8 errors=0 | dropped: title:role=91, title:seniority=13, location:eu_only_in_title=3, ...
+collector | himalayas fetched=207 title=103 ... | total ... in_db=…
 ```
 
-`known` = already stored from an earlier run, `dup` = same role already stored from another board.
+`title=`, `remote=`, `location=`, `authorization=` are how many jobs are still in after each prefilter stage. `known` = already stored from an earlier run, `dup` = same role already stored (reposted, or on another board).
 
 ## Run it
 
@@ -66,7 +68,8 @@ The workflow's public run log shows counts only, never listing content.
 ## Configuration
 
 - `config/sources.yaml`: which sources run, search queries, User-Agent and request delay.
-- Step 2 adds `config/rules.yaml` (tiers, drops), `config/profile.md` (skills-only profile) and `config/applied.yaml`.
+- `config/rules.yaml`: the prefilter (target titles, seniority, remote, allowed locations, work-permit phrases).
+- Step 2 adds tiers, `config/profile.md` (skills-only profile) and `applied.yaml` (private).
 
 ## Layout
 
@@ -77,6 +80,7 @@ collector/
   store.py         SQLite schema and inserts
   http.py          polite client (User-Agent, delay, optional cache)
   text.py          HTML to text, dedupe key, dates
+  prefilter.py     rule-based filter applied before storing
   sources/         one module per source
 config/            YAML config
 data/              local runs only (gitignored)

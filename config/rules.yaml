@@ -1,0 +1,70 @@
+# Rule-based prefilter. Runs in the collector before anything is stored, so screening
+# (Gemini) only ever sees roles that pass. Patterns are case-insensitive regular expressions.
+# Stages run in order; the first stage a job fails is its drop reason.
+
+title:
+  # Keep a job only if its title matches one of these.
+  include:
+    - '\bproduct\s+(manager|owner|management|lead)\b'
+    - '\b(pm|po)\b'
+    - '\bbusiness\s+analyst\b'
+    - '\bproject\s+manager\b'
+    - '\bimplementation\b'
+  # ...and none of these (seniority out of range).
+  exclude:
+    - '\b(junior|jr|intern|internship|trainee|graduate|working\s+student|werkstudent|associate)\b'
+    - '\b(staff|principal|director|head\s+of|vp|vice\s+president|chief|cpo)\b'
+
+remote:
+  # A job must be marked remote by its source, and its title/location must not say otherwise.
+  reject:
+    - '\bhybrid\b'
+    - '\bon[\s-]?site\b'
+    - '\bin[\s-]office\b'
+    - '\boffice[\s-]based\b'
+
+location:
+  # Specific places that make a job eligible. These win over anything else in the location.
+  allow:
+    - '\bbosnia\b'
+    - '\bserbia\b'
+    - '\bcroatia\b'
+    - '\bemea\b'
+    - '\beurope(an)?\b(?!\s+union)'
+    - '\b(cet|cest)\b'
+    - '\bcentral\s+europe(an)?\b'
+    - '\b(utc|gmt)\s*\+\s*0?[12](:00)?\b'
+  # Generic "anywhere" wording. Eligible only if the location names no other specific place
+  # ("Anywhere in the World, United States" is US-only).
+  anywhere:
+    - '\bworld\s*wide\b'
+    - '\banywhere\b'
+    - '\bglobal(ly)?\b'
+  # Words stripped before deciding whether a location is vague ("Remote", "Fully remote").
+  vague:
+    - '\b(fully|100%?|remote|remotely|work\s+from\s+home|wfh|flexible|distributed|in\s+the\s+world|unspecified)\b'
+  # Labels for the drop reason when a location is not eligible. Only used for reporting.
+  labels:
+    latam_only: '\b(latam|latin\s+america|south\s+america)\b'
+    us_only: '\b(usa?|united\s+states|america|north\s+america|canada)\b'
+    uk_only: '\b(uk|united\s+kingdom|great\s+britain|england|london)\b'
+    eu_only: '\b(eu|european\s+union|eea)\b'
+  # When the location is vague, look for allowed wording in the description instead.
+  check_description_when_vague: true
+
+authorization:
+  # Drop when the description requires work authorization or residence in a place that is
+  # not allowed above. The captured place is checked against location.allow.
+  requires_place:
+    - '(right|eligible|eligibility|authori[sz]ed|authori[sz]ation|permitted|legally\s+able)\s+to\s+work\s+in\s+(the\s+)?(?P<place>[a-z]+(\s+[a-z]+){0,2})'
+    - 'must\s+(be\s+)?(based|located|resid(e|ent)|living|live)\s+in\s+(the\s+)?(?P<place>[a-z]+(\s+[a-z]+){0,2})'
+  # A captured place matching any of these is not a real place ("in the country where you live").
+  ignore_places:
+    - '^(your|any|a|an|one|our|their|this|that|which|where|country|countries|location|region)\b'
+    - '\b(time\s*zones?|timezones?|hours)\b'   # "based in EU timezone" is about hours, not residence
+  # Phrases that always mean an EU/UK/US permit is required.
+  always:
+    - '\beu\s+(work\s+permit|citizen(ship)?|passport)\b'
+    - '\b(us|u\.s\.)\s+citizen(ship)?\b'
+    - '\bgreen\s+card\b'
+    - '\bsecurity\s+clearance\b'

@@ -5,6 +5,8 @@ from pathlib import Path
 import httpx
 import pytest
 
+from collector.prefilter import Prefilter
+
 FIXTURES = Path(__file__).parent / "fixtures"
 WWR_FEED = "https://weworkremotely.com/categories/remote-product-jobs.rss"
 
@@ -48,3 +50,8 @@ def config() -> dict:
         "remotive": {},
         "weworkremotely": {"feeds": [WWR_FEED]},
     }
+
+
+@pytest.fixture(scope="session")
+def prefilter() -> Prefilter:
+    return Prefilter.from_file(Path(__file__).parent.parent / "config" / "rules.yaml")

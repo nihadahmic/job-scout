@@ -8,7 +8,8 @@ import sys
 from pathlib import Path
 
 from collector.http import HttpClient
-from collector.run import collect, load_config, summary_line
+from collector.prefilter import Prefilter
+from collector.run import collect, load_config, source_lines, summary_line
 from collector.sources import SOURCES
 from collector.store import Store
 
@@ -18,6 +19,7 @@ ROOT = Path(__file__).resolve().parent.parent
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="collector", description=__doc__)
     parser.add_argument("--config", type=Path, default=ROOT / "config" / "sources.yaml")
+    parser.add_argument("--rules", type=Path, default=ROOT / "config" / "rules.yaml")
     parser.add_argument("--db", type=Path, default=ROOT / "data" / "jobs.sqlite")
     parser.add_argument(
         "--cache", action="store_true", help="cache HTTP responses in .cache/ (development)"
@@ -36,7 +38,9 @@ def main(argv: list[str] | None = None) -> int:
     )
     store = Store(args.db)
     try:
-        stats = collect(config, store, client, only=args.only)
+        stats = collect(config, store, client, Prefilter.from_file(args.rules), only=args.only)
+        for line in source_lines(stats):
+            print(line)
         print(summary_line(stats, store.count()))
     finally:
         client.close()

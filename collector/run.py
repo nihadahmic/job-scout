@@ -1,8 +1,9 @@
-"""One collector run: fetch every enabled source, normalize, dedupe, store, summarize."""
+"""One collector run: fetch each enabled source, normalize, prefilter, dedupe, store, summarize."""
 
 from __future__ import annotations
 
 import logging
+from collections import Counter
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -11,6 +12,7 @@ from typing import Any
 import yaml
 
 from collector.http import Fetcher
+from collector.prefilter import STAGES, Prefilter
 from collector.sources import SOURCES
 from collector.store import Store
 from collector.text import utc_now
@@ -21,15 +23,29 @@ log = logging.getLogger("collector")
 @dataclass
 class SourceStats:
     fetched: int = 0
+    normalized: int = 0
+    # jobs still in after each prefilter stage, keyed by stage name
+    passed: dict[str, int] = field(default_factory=lambda: dict.fromkeys(STAGES, 0))
+    dropped: Counter = field(default_factory=Counter)
     new: int = 0
     known: int = 0
     duplicate: int = 0
     errors: int = 0
     error_messages: list[str] = field(default_factory=list)
 
+    def add(self, other: SourceStats) -> None:
+        for attr in ("fetched", "normalized", "new", "known", "duplicate", "errors"):
+            setattr(self, attr, getattr(self, attr) + getattr(other, attr))
+        for stage in STAGES:
+            self.passed[stage] += other.passed[stage]
+        self.dropped.update(other.dropped)
+
     def as_dict(self) -> dict[str, Any]:
         return {
             "fetched": self.fetched,
+            "normalized": self.normalized,
+            "passed": dict(self.passed),
+            "dropped": dict(sorted(self.dropped.items())),
             "new": self.new,
             "known": self.known,
             "duplicate": self.duplicate,
@@ -47,6 +63,7 @@ def collect(
     config: dict[str, Any],
     store: Store,
     client: Fetcher,
+    prefilter: Prefilter,
     only: list[str] | None = None,
     now: Callable[[], str] = utc_now,
 ) -> dict[str, SourceStats]:
@@ -69,6 +86,9 @@ def collect(
             log.warning("%s fetch failed: %s", name, exc)
             continue
         s.fetched = len(raws)
+        s.error_messages.extend(getattr(source, "errors", []))
+        s.errors += len(getattr(source, "errors", []))
+
         for raw in raws:
             try:
                 job = source.normalize(raw)
@@ -76,6 +96,19 @@ def collect(
                 s.errors += 1
                 s.error_messages.append(f"normalize {raw.source_id}: {type(exc).__name__}: {exc}")
                 continue
+            s.normalized += 1
+
+            verdict = prefilter.check(job)
+            for stage in STAGES:
+                if stage == verdict.stage:
+                    break
+                s.passed[stage] += 1
+            if not verdict.keep:
+                s.dropped[verdict.reason] += 1
+                # Rows stored before the prefilter existed get marked so screening skips them.
+                store.mark_dropped(job.id, verdict.reason)
+                continue
+
             outcome = store.add(job, seen_at=started_at)
             setattr(s, outcome, getattr(s, outcome) + 1)
 
@@ -85,14 +118,26 @@ def collect(
 
 
 def _counts(s: SourceStats) -> str:
-    return f"fetched={s.fetched} new={s.new} known={s.known} dup={s.duplicate} errors={s.errors}"
+    stages = " ".join(f"{stage}={s.passed[stage]}" for stage in STAGES)
+    return (
+        f"fetched={s.fetched} {stages} new={s.new} known={s.known} "
+        f"dup={s.duplicate} errors={s.errors}"
+    )
+
+
+def source_lines(stats: dict[str, SourceStats]) -> list[str]:
+    """One detail line per source: counts after each stage, then drops by reason."""
+    lines = []
+    for name, s in stats.items():
+        reasons = ", ".join(f"{r}={n}" for r, n in s.dropped.most_common()) or "none"
+        lines.append(f"{name}: {_counts(s)} | dropped: {reasons}")
+    return lines
 
 
 def summary_line(stats: dict[str, SourceStats], total_in_db: int) -> str:
     total = SourceStats()
     for s in stats.values():
-        for attr in ("fetched", "new", "known", "duplicate", "errors"):
-            setattr(total, attr, getattr(total, attr) + getattr(s, attr))
+        total.add(s)
     parts = [f"{name} {_counts(s)}" for name, s in stats.items()]
     parts.append(f"total {_counts(total)} in_db={total_in_db}")
     return "collector | " + " | ".join(parts)

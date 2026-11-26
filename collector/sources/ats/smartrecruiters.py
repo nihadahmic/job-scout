@@ -2,7 +2,8 @@
 
 The list has no description, so details are fetched one posting at a time, but only for
 remote postings whose title passes the prefilter. That keeps a 2,000-job board to a
-handful of requests.
+handful of requests. Every posting is still returned, so the run counts what the board
+listed; the ones without details are dropped by the prefilter on title or remote.
 """
 
 from __future__ import annotations
@@ -45,7 +46,7 @@ class SmartRecruiters(AtsSource):
         ]
         for posting in wanted:
             posting["detail"] = json.loads(self.client.get_text(posting["ref"]))
-        return wanted
+        return postings
 
     def normalize(self, raw: RawJob) -> Job:
         p = raw.payload["item"]

@@ -48,7 +48,9 @@ export default async function RunsPage() {
           const reDropped = Object.values(meta.refilter?.dropped ?? {}).reduce((a, b) => a + b, 0);
           const total = (k: keyof Stats) => sources.reduce((s, [, v]) => s + ((v[k] as number) ?? 0), 0);
           const kept = sources.reduce((s, [, v]) => s + (v.passed?.authorization ?? 0), 0);
-          const silent = sources.filter(([, v]) => v.fetched === 0).map(([n]) => SOURCE_LABELS[n] ?? n);
+          // Nothing fetched and errors: something broke. Nothing fetched, no errors: the board was empty.
+          const broken = sources.filter(([, v]) => v.fetched === 0 && v.errors > 0).map(([n]) => SOURCE_LABELS[n] ?? n);
+          const empty = sources.filter(([, v]) => v.fetched === 0 && !v.errors).map(([n]) => SOURCE_LABELS[n] ?? n);
           const minutes = Math.round((new Date(run.finished_at).getTime() - new Date(run.started_at).getTime()) / 6000) / 10;
           return (
             <details key={run.id} className="rounded-lg border border-zinc-200 dark:border-zinc-800">
@@ -68,9 +70,10 @@ export default async function RunsPage() {
                 <Num label="new" value={total("new")} strong />
                 <Num label="errors" value={total("errors")} warn={total("errors") > 0} />
                 <span className="text-xs text-zinc-500">{minutes} min</span>
-                {silent.length > 0 && (
-                  <span className="text-xs text-amber-700 dark:text-amber-400">no listings from {silent.join(", ")}</span>
+                {broken.length > 0 && (
+                  <span className="text-xs text-amber-700 dark:text-amber-400">failed: {broken.join(", ")}</span>
                 )}
+                {empty.length > 0 && <span className="text-xs text-zinc-500">nothing listed on {empty.join(", ")}</span>}
               </summary>
               <div className="overflow-x-auto border-t border-zinc-200 px-4 py-3 dark:border-zinc-800">
                 {(meta.profile || meta.refilter) && (

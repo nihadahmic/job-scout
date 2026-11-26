@@ -132,11 +132,13 @@ def test_smartrecruiters_fetches_details_only_for_remote_title_matches(
     source = SmartRecruiters(
         client, {"companies_file": str(watchlist), "_title_ok": prefilter.title_ok}
     )
-    jobs = [source.normalize(r) for r in source.fetch()]
-    assert [j.title for j in jobs] == ["Business Analyst"]
+    raws = source.fetch()
+    assert len(raws) == 3  # every posting on the board is counted as fetched
+    jobs = {j.title: j for j in map(source.normalize, raws)}
+    assert jobs["Software Engineer"].description == ""  # no details fetched for non-matches
     detail_calls = [c for c in client.calls if "/postings/" in c]
     assert detail_calls == ["https://api.smartrecruiters.com/v1/companies/acme/postings/1"]
-    ba = jobs[0]
+    ba = jobs["Business Analyst"]
     assert ba.remote and ba.location_text == "Remote, Zagreb, Croatia"
     assert ba.url == "https://jobs.smartrecruiters.com/acme/1-business-analyst"
     assert "Placeholder description." in ba.description

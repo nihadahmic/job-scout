@@ -32,7 +32,7 @@ class FakePostgrest:
                 return False
             if expr == "not.is.null" and row.get(col) is None:
                 return False
-            if expr.startswith("eq.") and row.get(col) != expr[3:]:
+            if expr.startswith("eq.") and (row.get(col) or "") != expr[3:]:
                 return False
         return True
 
@@ -181,3 +181,19 @@ def test_refilter_restores_jobs_that_pass_again(store, fake, prefilter):
     row["dropped_reason"] = "screening:low_fit"  # not a prefilter drop: left alone
     _, restored = refilter(store, prefilter)
     assert restored == 0 and row["dropped_reason"] == "screening:low_fit"
+
+
+def test_known_jobs_get_missing_description_and_salary(store, fake):
+    store.add_many([job("acme/1")], "t")
+    assert fake.jobs["ashby:acme/1"]["description"] == ""
+    again = job("acme/1")
+    again.description = "Now with a description."
+    again.salary_text, again.salary_min_eur_month, again.salary_max_eur_month = (
+        "EUR 5,000-6,000 / month",
+        5000,
+        6000,
+    )
+    assert store.add_many([again], "t2") == ["known"]
+    row = fake.jobs["ashby:acme/1"]
+    assert row["description"] == "Now with a description." and row["salary_max_eur_month"] == 6000
+    assert row["first_seen_at"] == "t"  # still the original row

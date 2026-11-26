@@ -214,3 +214,36 @@ def test_ats_jobs_go_through_prefilter(fixture_client, watchlist, tmp_path, pref
     assert stats["personio"].passed["authorization"] == 1  # Remote - Croatia
     assert stats["breezy"].dropped["location:us_only"] == 1
     assert stats["smartrecruiters"].passed["authorization"] == 1  # Remote, Zagreb, Croatia
+
+
+def test_board_urls_keep_their_query_string(fixture_client, watchlist):
+    """Regression: a query built into the URL (?content=true) must reach the server."""
+    client = fixture_client(ROUTES)
+    Greenhouse(client, {"companies_file": str(watchlist)}).fetch()
+    Ashby(client, {"companies_file": str(watchlist)}).fetch()
+    assert any(c.endswith("/jobs?content=true") for c in client.calls)
+    assert any(c.endswith("?includeCompensation=true") for c in client.calls)
+
+
+def test_http_client_keeps_query_string():
+    import httpx
+
+    from collector.http import HttpClient
+
+    seen = []
+
+    def handler(request):
+        seen.append(str(request.url))
+        return httpx.Response(200, text="ok")
+
+    client = HttpClient("test")
+    client._client = httpx.Client(transport=httpx.MockTransport(handler))
+    client._delay = 0
+    client.get_text("https://x.test/jobs?content=true")
+    client.get_text("https://x.test/list", params={"page": 2})
+    client.get_text("https://x.test/list?a=1", params={"b": 2})
+    assert seen == [
+        "https://x.test/jobs?content=true",
+        "https://x.test/list?page=2",
+        "https://x.test/list?a=1&b=2",
+    ]

@@ -121,3 +121,11 @@ salary:
               SEK: 0.087, NOK: 0.085, DKK: 0.134, CZK: 0.04, RON: 0.2, INR: 0.0105, BRL: 0.17, HUF: 0.0025}
   hours_per_month: 160
   days_per_month: 20
+
+# Screening (Gemini) runs after collection on new jobs that passed the prefilter.
+screening:
+  batch_size: 5            # jobs per Gemini request
+  max_per_run: 100         # cap so a big backlog is spread over a few days
+  description_chars: 4000  # posting text sent per job
+  shortlist_max_tier: 2    # tier 1 or 2 ...
+  shortlist_min_fit: 60    # ... and fit at least this -> shortlisted

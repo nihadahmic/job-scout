@@ -143,3 +143,16 @@ export const DEFAULT_CATEGORY_STYLE = {
   tag: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300",
 };
 export const LOCATION_TAG = "bg-teal-50 text-teal-800 dark:bg-teal-950 dark:text-teal-300";
+
+export const TIER_LABELS: Record<string, string> = {
+  "1": "Tier 1: Bosnia or worldwide",
+  "2": "Tier 2: region, no EU permit",
+  "3": "Tier 3: eligibility unclear",
+};
+
+export function fitStyle(fit: number | null): string {
+  if (fit == null) return "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400";
+  if (fit >= 70) return "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300";
+  if (fit >= 55) return "bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300";
+  return "bg-zinc-100 text-zinc-600 dark:bg-zinc-800 dark:text-zinc-400";
+}

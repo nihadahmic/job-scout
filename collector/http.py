@@ -39,7 +39,9 @@ class HttpClient:
         return self._cache_dir / hashlib.sha256(url.encode()).hexdigest()[:24]
 
     def get_text(self, url: str, params: dict | None = None) -> str:
-        full_url = str(httpx.URL(url, params=params))
+        # httpx.URL(url, params=None) drops the query already in `url`
+        # ("...?content=true"), so only merge params when there are some.
+        full_url = str(httpx.URL(url).copy_merge_params(params)) if params else url
         cache_path = self._cache_path(full_url)
         if cache_path and cache_path.exists():
             return cache_path.read_text()

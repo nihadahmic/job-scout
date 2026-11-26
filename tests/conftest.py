@@ -19,7 +19,7 @@ class FixtureClient:
         self.calls: list[str] = []
 
     def get_text(self, url: str, params: dict | None = None) -> str:
-        full = str(httpx.URL(url, params=params))
+        full = str(httpx.URL(url).copy_merge_params(params)) if params else url
         self.calls.append(full)
         for prefix, target in self.routes.items():
             if full.startswith(prefix):

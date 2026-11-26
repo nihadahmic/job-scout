@@ -5,6 +5,7 @@ name: collect
 #
 # Setup:
 #   - SUPABASE_URL, SUPABASE_SERVICE_KEY secrets: the project URL and its secret key
+#   - GEMINI_API_KEY secret: for screening (skipped with a notice when missing)
 #   - DATA_REPO_TOKEN secret: fine-grained token for the data repo, Contents: read
 #   - data repo, default <owner>/job-scout-data (override with the DATA_REPO repo variable),
 #     holding companies.yaml (scripts/import_companies.py, scripts/detect_ats.py)
@@ -72,3 +73,11 @@ jobs:
           uv run python -m collector \
             --companies private-data/companies.yaml \
             | tee -a "$GITHUB_STEP_SUMMARY"
+
+      - name: Screen
+        # Gemini rates the new jobs (tier, fit) and shortlists the best. Counts only in the log.
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+        run: uv run python -m screening | tee -a "$GITHUB_STEP_SUMMARY"

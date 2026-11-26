@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { AutoSubmitForm } from "@/components/AutoSubmitForm";
 import { Nav } from "@/components/Nav";
+import { QuickDecision } from "@/components/QuickDecision";
 import { StatusSelect } from "@/components/StatusSelect";
 import {
   ACTIVE_STATUSES,
@@ -12,7 +13,9 @@ import {
   LOCATION_TAG,
   SOURCE_LABELS,
   STATUS_LABELS,
+  TIER_LABELS,
   daysAgo,
+  fitStyle,
   formatEur,
   type Status,
 } from "@/lib/labels";
@@ -23,12 +26,13 @@ export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 50;
 const SORTS = {
+  fit: { column: "fit", label: "Best fit" },
   posted: { column: "posted_at", label: "Newest posted" },
   found: { column: "first_seen_at", label: "Newest found" },
   salary: { column: "salary_max_eur_month", label: "Highest salary" },
   company: { column: "company", label: "Company A–Z" },
 } as const;
-const VIEWS = { active: "Active", closed: "Closed", all: "All" } as const;
+const VIEWS = { shortlist: "Shortlist", active: "Active", closed: "Closed", all: "All" } as const;
 const POSTED = { "": "Any time", "3": "3 days", "7": "7 days", "14": "14 days", "30": "30 days" } as const;
 const SALARY_STEPS = [3000, 4000, 5000, 6000, 8000];
 
@@ -51,12 +55,13 @@ export default async function BacklogPage({ searchParams }: { searchParams: Prom
   const categories = list(params.category);
   const sources = list(params.source);
   const matches = list(params.match);
+  const tiers = list(params.tier);
   const posted = one(params.posted);
   const minSalary = one(params.salary);
   const withSalary = one(params.has_salary) === "1";
   const showDropped = one(params.dropped) === "1";
   const q = one(params.q).trim();
-  const sortKey = (one(params.sort) || "posted") as keyof typeof SORTS;
+  const sortKey = (one(params.sort) || (view === "shortlist" ? "fit" : "posted")) as keyof typeof SORTS;
   const sort = SORTS[sortKey] ?? SORTS.posted;
   const page = Math.max(1, Number(one(params.page)) || 1);
 
@@ -64,20 +69,23 @@ export default async function BacklogPage({ searchParams }: { searchParams: Prom
   let query = supabase
     .from("jobs")
     .select(
-      "id, title, company, category, location_text, location_match, salary_text, salary_min_eur_month, salary_max_eur_month, posted_at, first_seen_at, source, status, dropped_reason",
+      "id, title, company, category, location_text, location_match, salary_text, salary_min_eur_month, salary_max_eur_month, posted_at, first_seen_at, source, status, dropped_reason, tier, fit, fit_reason, eligibility_note",
       { count: "exact" },
     );
   if (statuses.length) query = query.in("status", statuses);
+  else if (view === "shortlist") query = query.eq("status", "shortlisted");
   else if (view === "active") query = query.in("status", [...ACTIVE_STATUSES]);
   else if (view === "closed") query = query.in("status", [...CLOSED_STATUSES]);
   if (!showDropped) query = query.is("dropped_reason", null);
   if (categories.length) query = query.in("category", categories);
   if (sources.length) query = query.in("source", sources);
   if (matches.length) query = query.in("location_match", matches);
+  if (tiers.length) query = query.in("tier", tiers.map(Number));
   if (posted) query = query.gte("posted_at", new Date(Date.now() - Number(posted) * 86_400_000).toISOString());
   if (minSalary) query = query.gte("salary_max_eur_month", Number(minSalary));
   else if (withSalary) query = query.not("salary_max_eur_month", "is", null);
   if (q) query = query.textSearch("search", q, { type: "websearch", config: "english" });
+  if (sortKey === "fit") query = query.order("tier", { ascending: true, nullsFirst: false });
   query = query
     .order(sort.column, { ascending: sortKey === "company", nullsFirst: false })
     .order("first_seen_at", { ascending: false })
@@ -99,7 +107,7 @@ export default async function BacklogPage({ searchParams }: { searchParams: Prom
     return `/?${sp.toString()}`;
   };
   const anyFilter =
-    statuses.length + categories.length + sources.length + matches.length > 0 ||
+    statuses.length + categories.length + sources.length + matches.length + tiers.length > 0 ||
     !!posted || !!minSalary || withSalary || showDropped || !!q || view !== "active";
 
   return (
@@ -144,6 +152,13 @@ export default async function BacklogPage({ searchParams }: { searchParams: Prom
         <ChipRow label="Location">
           {Object.entries(LOCATION_MATCH_LABELS).map(([value, label]) => (
             <Chip key={value} name="match" value={value} checked={matches.includes(value)} on={LOCATION_TAG}>
+              {label}
+            </Chip>
+          ))}
+        </ChipRow>
+        <ChipRow label="Tier">
+          {Object.entries(TIER_LABELS).map(([value, label]) => (
+            <Chip key={value} name="tier" value={value} checked={tiers.includes(value)} on="bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300">
               {label}
             </Chip>
           ))}
@@ -240,9 +255,26 @@ export default async function BacklogPage({ searchParams }: { searchParams: Prom
                     {job.location_text ? ` · ${job.location_text}` : ""}
                     {job.dropped_reason ? ` · dropped: ${job.dropped_reason}` : ""}
                   </p>
+                  {job.fit_reason && (
+                    <p className="text-xs text-zinc-600 dark:text-zinc-400">
+                      {job.fit_reason}
+                      {job.eligibility_note?.startsWith("Requirement:") && (
+                        <span className="text-amber-700 dark:text-amber-400"> {job.eligibility_note}</span>
+                      )}
+                    </p>
+                  )}
                 </div>
               </div>
               <div className="flex flex-wrap items-center gap-1.5 text-xs sm:justify-end">
+                {job.fit != null && (
+                  <span
+                    title={job.tier ? TIER_LABELS[String(job.tier)] : "Screened"}
+                    className={`rounded-full px-2 py-0.5 font-medium tabular-nums ${fitStyle(job.fit)}`}
+                  >
+                    {job.tier ? `T${job.tier} · ` : ""}
+                    {job.fit}
+                  </span>
+                )}
                 {job.category && <span className={`rounded-full px-2 py-0.5 ${style.tag}`}>{CATEGORY_LABELS[job.category]}</span>}
                 {job.location_match && (
                   <span className={`rounded-full px-2 py-0.5 ${LOCATION_TAG}`}>{LOCATION_MATCH_LABELS[job.location_match]}</span>
@@ -258,7 +290,11 @@ export default async function BacklogPage({ searchParams }: { searchParams: Prom
                 <span className="text-zinc-500" title={SOURCE_LABELS[job.source] ?? job.source}>
                   {daysAgo(job.posted_at ?? job.first_seen_at)}
                 </span>
-                <StatusSelect jobId={job.id} status={job.status as Status} />
+                {job.status === "shortlisted" ? (
+                  <QuickDecision jobId={job.id} />
+                ) : (
+                  <StatusSelect jobId={job.id} status={job.status as Status} />
+                )}
               </div>
             </li>
           );

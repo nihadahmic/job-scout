@@ -59,7 +59,9 @@ export default async function JobPage({ searchParams }: { searchParams: Promise<
   ];
   if (job.close_reason) facts.push(["Closed because", job.close_reason]);
   if (job.dropped_reason) facts.push(["Prefilter", `dropped: ${job.dropped_reason}`]);
-  if (job.tier != null) facts.push(["Tier / fit", `${job.tier} / ${job.fit ?? "—"}`]);
+  if (job.tier != null || job.fit != null) facts.push(["Tier / fit", `${job.tier ?? "—"} / ${job.fit ?? "—"}`]);
+  if (job.fit_reason) facts.push(["Screening", job.fit_reason]);
+  if (job.eligibility_note) facts.push(["Eligibility", job.eligibility_note]);
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-6">

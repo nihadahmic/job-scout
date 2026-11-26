@@ -83,6 +83,7 @@ class SupabaseStore:
                 known_ids.add(job.id)
                 known_keys.add(key)  # catches duplicates within this batch too
                 rows.append(_row(job, key, seen_at))
+        self._fill_missing([j for j, o in zip(jobs, outcomes, strict=True) if o == "known"])
         for chunk in _chunks(rows):
             r = self.client.post(
                 "/jobs",
@@ -92,6 +93,39 @@ class SupabaseStore:
             )
             r.raise_for_status()
         return outcomes
+
+    def _fill_missing(self, known: list[Job]) -> None:
+        """Fill in what a known job is missing (empty description, no salary) when the
+        source now provides it. Repairs rows stored while a fetch option was being lost."""
+        with_text = {j.id: j for j in known if j.description}
+        for chunk in _chunks(sorted(with_text)):
+            r = self.client.get(
+                "/jobs", params={"select": "id", "id": _in(chunk), "description": "eq."}
+            )
+            r.raise_for_status()
+            for row in r.json():
+                self.client.patch(
+                    "/jobs",
+                    params={"id": f"eq.{row['id']}"},
+                    json={"description": with_text[row["id"]].description},
+                ).raise_for_status()
+        with_salary = {j.id: j for j in known if j.salary_text}
+        for chunk in _chunks(sorted(with_salary)):
+            r = self.client.get(
+                "/jobs", params={"select": "id", "id": _in(chunk), "salary_text": "is.null"}
+            )
+            r.raise_for_status()
+            for row in r.json():
+                j = with_salary[row["id"]]
+                self.client.patch(
+                    "/jobs",
+                    params={"id": f"eq.{row['id']}"},
+                    json={
+                        "salary_text": j.salary_text,
+                        "salary_min_eur_month": j.salary_min_eur_month,
+                        "salary_max_eur_month": j.salary_max_eur_month,
+                    },
+                ).raise_for_status()
 
     def mark_dropped(self, job_id: str, reason: str) -> None:
         self.mark_dropped_many({job_id: reason})

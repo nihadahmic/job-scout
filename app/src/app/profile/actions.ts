@@ -92,9 +92,11 @@ export async function saveFacts(_: SaveResult | null, form: FormData): Promise<S
 }
 
 export async function saveWriting(_: SaveResult | null, form: FormData): Promise<SaveResult> {
+  const prefs = (await current()).preferences;
   return save({
     experience: text(form.get("experience"), 20_000),
     writing_rules: text(form.get("writing_rules"), 10_000),
+    preferences: { ...prefs, ai: { ...prefs.ai, allow_cv: form.get("allow_cv") === "on" } },
   });
 }
 

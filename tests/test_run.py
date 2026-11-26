@@ -77,7 +77,7 @@ def test_failing_source_does_not_stop_others(tmp_path, fixture_client, all_route
     assert stats["himalayas"].new == 3
     assert stats["weworkremotely"].new == 3
     line = summary_line(stats, store.count())
-    assert "remotive fetched=0 title=0 remote=0 location=0 authorization=0 new=0" in line
+    assert "remotive fetched=0 company=0 title=0 remote=0 location=0 authorization=0 new=0" in line
     assert "remotive fetched=0" in line and "errors=1" in line
     assert line.endswith("in_db=6")
 
@@ -110,7 +110,9 @@ def test_real_rules_count_each_stage(tmp_path, fixture_client, all_routes, confi
     assert store.count() == 2
 
     lines = source_lines(stats)
-    assert lines[0].startswith("himalayas: fetched=3 title=1 remote=1 location=1 authorization=1")
+    assert lines[0].startswith(
+        "himalayas: fetched=3 company=3 title=1 remote=1 location=1 authorization=1"
+    )
     assert "dropped: title:role=1, title:seniority=1" in lines[0]
 
 

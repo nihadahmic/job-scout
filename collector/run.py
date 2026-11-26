@@ -68,6 +68,7 @@ def collect(
     only: list[str] | None = None,
     now: Callable[[], str] = utc_now,
     enricher: Enricher | None = None,
+    meta: dict[str, Any] | None = None,
 ) -> dict[str, SourceStats]:
     started_at = now()
     stats: dict[str, SourceStats] = {}
@@ -119,7 +120,10 @@ def collect(
         for outcome in store.add_many(kept, seen_at=started_at):
             setattr(s, outcome, getattr(s, outcome) + 1)
 
-    store.record_run(started_at, now(), {k: v.as_dict() for k, v in stats.items()})
+    summary: dict[str, Any] = {k: v.as_dict() for k, v in stats.items()}
+    if meta:
+        summary["_meta"] = meta  # not a source: profile used, backlog re-check counts
+    store.record_run(started_at, now(), summary)
     store.commit()
     return stats
 

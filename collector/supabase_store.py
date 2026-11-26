@@ -119,29 +119,61 @@ class SupabaseStore:
                 changed += len(r.json())
         return changed
 
-    def unscreened(self) -> list[dict[str, Any]]:
-        """Stored jobs the rules may still drop: not screened, not dropped, status new."""
+    def unscreened(self, include_dropped: bool = False) -> list[dict[str, Any]]:
+        """Stored jobs the rules may still change: not screened, status new.
+
+        With include_dropped, jobs the prefilter dropped earlier are included too, so a
+        loosened preference can bring them back.
+        """
         rows, offset = [], 0
+        params: dict[str, Any] = {
+            "select": "id,source,source_id,url,company,title,location_text,remote,"
+            "posted_at,description,salary_text,apply_url,extra,dropped_reason",
+            "tier": "is.null",
+            "status": "eq.new",
+            "order": "id",
+            "limit": 1000,
+        }
+        if not include_dropped:
+            params["dropped_reason"] = "is.null"
         while True:
-            r = self.client.get(
-                "/jobs",
-                params={
-                    "select": "id,source,source_id,url,company,title,location_text,remote,"
-                    "posted_at,description,salary_text,apply_url,extra",
-                    "dropped_reason": "is.null",
-                    "tier": "is.null",
-                    "status": "eq.new",
-                    "order": "id",
-                    "limit": 1000,
-                    "offset": offset,
-                },
-            )
+            r = self.client.get("/jobs", params={**params, "offset": offset})
             r.raise_for_status()
             page = r.json()
             rows += page
             if len(page) < 1000:
                 return rows
             offset += 1000
+
+    def restore_many(self, matches: dict[str, str | None]) -> int:
+        """Clear dropped_reason on jobs that pass the rules again, setting location_match."""
+        by_match: dict[str | None, list[str]] = {}
+        for job_id, match in matches.items():
+            by_match.setdefault(match, []).append(job_id)
+        changed = 0
+        for match, ids in by_match.items():
+            for chunk in _chunks(ids):
+                r = self.client.patch(
+                    "/jobs",
+                    params={
+                        "id": _in(chunk),
+                        "dropped_reason": "not.is.null",
+                        "tier": "is.null",
+                        "status": "eq.new",
+                    },
+                    json={"dropped_reason": None, "location_match": match},
+                    headers={"Prefer": "return=representation"},
+                )
+                r.raise_for_status()
+                changed += len(r.json())
+        return changed
+
+    def load_preferences(self) -> dict[str, Any] | None:
+        """The owner's profile preferences, or None if no profile has been saved."""
+        r = self.client.get("/profile", params={"select": "preferences", "limit": 1})
+        r.raise_for_status()
+        rows = r.json()
+        return rows[0]["preferences"] if rows else None
 
     def record_run(self, started_at: str, finished_at: str, summary: dict) -> None:
         r = self.client.post(

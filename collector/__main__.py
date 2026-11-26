@@ -10,6 +10,8 @@ from pathlib import Path
 from collector.enrich import Enricher
 from collector.http import HttpClient
 from collector.prefilter import Prefilter
+from collector.profile_rules import apply_profile, describe
+from collector.refilter import refilter
 from collector.run import collect, load_config, source_lines, summary_line
 from collector.sources import SOURCES
 from collector.store import Store
@@ -70,8 +72,28 @@ def main(argv: list[str] | None = None) -> int:
     print(f"store: {'supabase' if isinstance(store, SupabaseStore) else store_path(args)}")
     try:
         rules = load_config(args.rules)
+        meta = {}
+        # The owner's Profile page decides which rules apply. If it can't be read, the run
+        # carries on with rules.yaml and says so, instead of failing.
+        try:
+            prefs = store.load_preferences()
+            meta["profile"] = describe(prefs)
+        except Exception as exc:
+            prefs = None
+            meta["profile"] = f"couldn't read the profile ({type(exc).__name__}), using rules.yaml"
+        prefilter = Prefilter(apply_profile(rules, prefs))
+        print(meta["profile"])
+
+        # Re-apply the current preferences to the stored backlog before collecting.
+        if args.only:
+            meta["refilter"] = {"skipped": "partial run (--only)"}
+        else:
+            dropped, restored = refilter(store, prefilter)
+            meta["refilter"] = {"dropped": dict(dropped), "restored": restored}
+            print(f"backlog re-check | dropped={sum(dropped.values())} restored={restored}")
+
         stats = collect(
-            config, store, client, Prefilter(rules), only=args.only, enricher=Enricher(rules)
+            config, store, client, prefilter, only=args.only, enricher=Enricher(rules), meta=meta
         )
         for line in source_lines(stats):
             print(line)

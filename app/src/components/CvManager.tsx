@@ -87,7 +87,8 @@ export function CvManager({ userId, current: initialCurrent }: { userId: string;
     <fieldset className="rounded-lg border border-zinc-200 p-4 dark:border-zinc-800">
       <legend className="px-1 text-sm font-medium">CV</legend>
       <p className="mb-3 text-xs text-zinc-500">
-        Stored privately in your Supabase project; only your account can open it. It is not sent to Gemini.
+        Stored privately in your Supabase project; only your account can open it. Whether drafting may send it to
+        Gemini (with contact details removed) is set under Experience and writing.
       </p>
       <label className="btn inline-block cursor-pointer">
         {busy ? "Working…" : "Upload PDF"}

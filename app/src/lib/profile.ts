@@ -37,6 +37,7 @@ export type Preferences = {
     hours_per_month: number;
   };
   skip_companies: string[];
+  ai: { allow_cv: boolean };
 };
 
 export type Facts = {
@@ -71,6 +72,9 @@ export const DEFAULT_PREFERENCES: Preferences = {
   },
   salary: { floor_eur_hour: null, target_eur_hour: null, employment_discount_pct: null, hours_per_month: 160 },
   skip_companies: [],
+  // Drafting may send the current CV to Gemini (free tier), with name, email, phone and
+  // profile links removed first. The owner chose this; it can be switched off on the Profile page.
+  ai: { allow_cv: true },
 };
 
 export const EMPTY_FACTS: Facts = {
@@ -106,6 +110,7 @@ export function withDefaults(row: Partial<Record<string, unknown>> | null): Prof
       work: { ...DEFAULT_PREFERENCES.work, ...(p.work ?? {}) },
       locations: { ...DEFAULT_PREFERENCES.locations, ...(p.locations ?? {}) },
       salary: { ...DEFAULT_PREFERENCES.salary, ...(p.salary ?? {}) },
+      ai: { ...DEFAULT_PREFERENCES.ai, ...(p.ai ?? {}) },
     },
     weekly_goal: (row?.weekly_goal as number | null) ?? null,
     facts: { ...EMPTY_FACTS, ...((row?.facts ?? {}) as Partial<Facts>) },

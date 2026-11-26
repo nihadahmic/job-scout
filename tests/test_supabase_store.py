@@ -30,6 +30,8 @@ class FakePostgrest:
                 return False
             if expr == "is.null" and row.get(col) is not None:
                 return False
+            if expr == "not.is.null" and row.get(col) is None:
+                return False
             if expr.startswith("eq.") and row.get(col) != expr[3:]:
                 return False
         return True
@@ -160,6 +162,22 @@ def test_refilter_marks_rows_that_fail_rules(store, fake, prefilter):
     store.add_many([job("acme/1"), job("acme/2", title="Data Engineer")], "t")
     for row in fake.jobs.values():
         row.update(posted_at=None, description="", salary_text=None, apply_url=None, extra={})
-    counts = refilter(store, prefilter)
-    assert counts == {"title:role": 1}
+    counts, restored = refilter(store, prefilter)
+    assert counts == {"title:role": 1} and restored == 0
     assert fake.jobs["ashby:acme/2"]["dropped_reason"] == "title:role"
+
+
+def test_refilter_restores_jobs_that_pass_again(store, fake, prefilter):
+    from collector.refilter import refilter
+
+    store.add_many([job("acme/1")], "t")
+    row = fake.jobs["ashby:acme/1"]
+    row.update(posted_at=None, description="", salary_text=None, apply_url=None, extra={})
+    row["dropped_reason"] = "location:other_place"  # dropped under older, stricter rules
+    counts, restored = refilter(store, prefilter)
+    assert restored == 1 and not counts
+    assert row["dropped_reason"] is None and row["location_match"] == "europe"
+
+    row["dropped_reason"] = "screening:low_fit"  # not a prefilter drop: left alone
+    _, restored = refilter(store, prefilter)
+    assert restored == 0 and row["dropped_reason"] == "screening:low_fit"

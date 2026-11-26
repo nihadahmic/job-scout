@@ -137,13 +137,13 @@ class Store:
             self.mark_dropped(job_id, reason)
         return self.conn.total_changes - before
 
-    def unscreened(self) -> list[dict]:
+    def unscreened(self, include_dropped: bool = False) -> list[dict]:
         self.conn.row_factory = sqlite3.Row
+        where = "tier IS NULL AND status = 'new'"
+        if not include_dropped:
+            where += " AND dropped_reason IS NULL"
         try:
-            rows = self.conn.execute(
-                "SELECT * FROM jobs "
-                "WHERE dropped_reason IS NULL AND tier IS NULL AND status = 'new'"
-            ).fetchall()
+            rows = self.conn.execute(f"SELECT * FROM jobs WHERE {where}").fetchall()
         finally:
             self.conn.row_factory = None
         out = []
@@ -153,6 +153,19 @@ class Store:
             row["remote"] = bool(row["remote"])
             out.append(row)
         return out
+
+    def restore_many(self, matches: dict[str, str | None]) -> int:
+        before = self.conn.total_changes
+        for job_id, match in matches.items():
+            self.conn.execute(
+                "UPDATE jobs SET dropped_reason = NULL, location_match = ? "
+                "WHERE id = ? AND dropped_reason IS NOT NULL AND tier IS NULL AND status = 'new'",
+                (match, job_id),
+            )
+        return self.conn.total_changes - before
+
+    def load_preferences(self) -> dict | None:
+        return None  # local SQLite runs have no profile; rules.yaml applies as is
 
     def record_run(self, started_at: str, finished_at: str, summary: dict) -> None:
         self.conn.execute(

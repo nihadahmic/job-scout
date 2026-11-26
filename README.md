@@ -92,7 +92,8 @@ Detection saves after every company and resumes where it stopped. To fix a match
 ## Configuration
 
 - `config/sources.yaml`: which sources run, search queries, User-Agent and request delay.
-- `config/rules.yaml`: the prefilter (target titles, seniority, remote, allowed locations, work-permit phrases).
+- `config/rules.yaml`: the prefilter patterns (titles, seniority levels, remote, location groups, work-permit phrases).
+- **Profile page** (in the app): which of those apply: categories, seniority to skip, local hybrid work, location groups, companies to skip. Each run loads it and re-applies it to the stored backlog; see `collector/profile_rules.py`.
 - Step 2 adds tiers, `config/profile.md` (skills-only profile) and `applied.yaml` (private).
 
 ## Layout

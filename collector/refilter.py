@@ -15,7 +15,9 @@ from collections import Counter
 from pathlib import Path
 
 from collector.models import Job
-from collector.prefilter import Prefilter
+from collector.prefilter import STAGES, Prefilter
+from collector.profile_rules import apply_profile, describe
+from collector.run import load_config
 from collector.store import Store
 from collector.supabase_store import SupabaseStore, load_dotenv
 
@@ -39,16 +41,30 @@ def job_from_row(row: dict) -> Job:
     )
 
 
-def refilter(store, prefilter: Prefilter, dry_run: bool = False) -> Counter:
-    reasons = {}
-    for row in store.unscreened():
-        verdict = prefilter.check(job_from_row(row))
-        if not verdict.keep:
-            reasons[row["id"]] = verdict.reason
-    if reasons and not dry_run:
-        store.mark_dropped_many(reasons)
+def refilter(store, prefilter: Prefilter, dry_run: bool = False) -> tuple[Counter, int]:
+    """Re-apply the rules to stored, unscreened jobs.
+
+    Drops jobs that no longer pass (sets dropped_reason) and restores jobs the prefilter
+    dropped earlier that pass now. Jobs dropped for another reason (screening, later) are
+    left alone. Returns (dropped by reason, number restored).
+    """
+    drop: dict[str, str] = {}
+    restore: dict[str, str | None] = {}
+    for row in store.unscreened(include_dropped=True):
+        job = job_from_row(row)
+        verdict = prefilter.check(job)
+        previous = row.get("dropped_reason")
+        if previous is None and not verdict.keep:
+            drop[row["id"]] = verdict.reason
+        elif previous and verdict.keep and previous.split(":", 1)[0] in STAGES:
+            restore[row["id"]] = prefilter.location_match(job)
+    if not dry_run:
+        if drop:
+            store.mark_dropped_many(drop)
+        if restore:
+            store.restore_many(restore)
         store.commit()
-    return Counter(reasons.values())
+    return Counter(drop.values()), len(restore)
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -62,12 +78,15 @@ def main(argv: list[str] | None = None) -> int:
     store = None if args.db else SupabaseStore.from_env()
     store = store or Store(args.db or ROOT / "data" / "jobs.sqlite")
     try:
-        counts = refilter(store, Prefilter.from_file(args.rules), args.dry_run)
+        rules = load_config(args.rules)
+        prefs = store.load_preferences()
+        counts, restored = refilter(store, Prefilter(apply_profile(rules, prefs)), args.dry_run)
     finally:
         store.close()
     detail = ", ".join(f"{r}={n}" for r, n in counts.most_common()) or "none"
-    verb = "would drop" if args.dry_run else "dropped"
-    print(f"refilter | {verb}={sum(counts.values())} | {detail}")
+    prefix = "would " if args.dry_run else ""
+    print(f"refilter | {describe(prefs)}")
+    print(f"refilter | {prefix}drop={sum(counts.values())} ({detail}) | {prefix}restore={restored}")
     return 0
 
 

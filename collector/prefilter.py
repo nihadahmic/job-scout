@@ -1,7 +1,8 @@
 """Rule-based prefilter that runs before screening. Rules live in config/rules.yaml.
 
-Stages, in order: title, remote, location, authorization. A job is dropped at the first
-stage it fails, and the reason (for example "location:us_only") is counted per source.
+Stages, in order: company, title, remote, location, authorization. A job is dropped at the
+first stage it fails, and the reason (for example "location:us_only") is counted per source.
+The owner's profile adjusts these rules at run time (collector/profile_rules.py).
 """
 
 from __future__ import annotations
@@ -14,8 +15,9 @@ from typing import Any
 import yaml
 
 from collector.models import Job
+from collector.text import dedupe_key
 
-STAGES = ("title", "remote", "location", "authorization")
+STAGES = ("company", "title", "remote", "location", "authorization")
 
 
 def _compile(patterns: list[str]) -> list[re.Pattern[str]]:
@@ -35,13 +37,26 @@ class Verdict:
 
 class Prefilter:
     def __init__(self, rules: dict[str, Any]) -> None:
-        t, r, loc, auth = (rules.get(k) or {} for k in STAGES)
+        c, t, r, loc, auth = (rules.get(k) or {} for k in STAGES)
+        self.skip_companies = {_company_key(x) for x in c.get("skip", []) if str(x).strip()}
         self.title_include = _compile(t.get("include", []))
-        self.title_exclude = _compile(t.get("exclude", []))
+        seniority = rules.get("seniority") or {}
+        levels = t.get("exclude_levels", list(seniority))
+        self.title_exclude = _compile(
+            list(t.get("exclude", [])) + [seniority[lv] for lv in levels if lv in seniority]
+        )
         self.remote_reject = _compile(r.get("reject", []))
+        self.remote_local = _compile(r.get("local", []))
+        self.allow_local = bool(r.get("allow_local", False))
+        self.require_local = bool(r.get("require_local", False))
         allow = loc.get("allow", {})
         if isinstance(allow, list):  # flat list: one unnamed group
             allow = {"allowed": allow}
+        allow = dict(allow)
+        optional = loc.get("optional", {})
+        for name in loc.get("enable_optional", []):
+            if name in optional:
+                allow[name] = optional[name]
         self.loc_allow_groups = {label: _compile(p) for label, p in allow.items()}
         self.loc_allow = [p for group in self.loc_allow_groups.values() for p in group]
         self.loc_anywhere = _compile(loc.get("anywhere", []))
@@ -51,6 +66,10 @@ class Prefilter:
         }
         self.check_description = bool(loc.get("check_description_when_vague", True))
         self.desc_anywhere = _compile(loc.get("description_anywhere", []))
+        self.keep_unclear = bool(loc.get("keep_unclear", False))
+        # "Worldwide"/"anywhere" still count as vague words when this is off; they just
+        # stop making a job eligible.
+        self.allow_anywhere = bool(loc.get("allow_anywhere", True))
         self.auth_place = _compile(auth.get("requires_place", []))
         self.auth_always = _compile(auth.get("always", []))
         self.auth_ignore = _compile(auth.get("ignore_places", []))
@@ -73,16 +92,22 @@ class Prefilter:
         for label, patterns in self.loc_allow_groups.items():
             if _any(patterns, text):
                 return label
-        if _any(self.loc_anywhere, text):
+        if self.allow_anywhere and _any(self.loc_anywhere, text):
             return "worldwide"
-        if self.check_description and _any(self.loc_allow + self.desc_anywhere, job.description):
+        desc = self.loc_allow + (self.desc_anywhere if self.allow_anywhere else [])
+        if self.check_description and _any(desc, job.description):
             return "description"
-        return None
+        return "unclear" if self.keep_unclear else None
 
     def title_ok(self, title: str) -> bool:
         return self._title(Job("", "", "", "", title, "", True, None, "", None, None)) is None
 
     # Each stage returns None to pass, or a short reason to drop.
+
+    def _company(self, job: Job) -> str | None:
+        if self.skip_companies and _company_key(job.company) in self.skip_companies:
+            return "skipped"
+        return None
 
     def _title(self, job: Job) -> str | None:
         if not _any(self.title_include, job.title):
@@ -92,10 +117,14 @@ class Prefilter:
         return None
 
     def _remote(self, job: Job) -> str | None:
+        where = f"{job.title} {job.location_text}"
+        local = bool(self.remote_local) and _any(self.remote_local, where)
         if not job.remote:
-            return "not_remote"
-        if _any(self.remote_reject, f"{job.title} {job.location_text}"):
-            return "hybrid_or_onsite"
+            return None if self.allow_local and local else "not_remote"
+        if _any(self.remote_reject, where):
+            return None if self.allow_local and local else "hybrid_or_onsite"
+        if self.require_local and not local:
+            return "remote_not_wanted"
         return None
 
     def _location(self, job: Job) -> str | None:
@@ -117,13 +146,12 @@ class Prefilter:
         specific = re.sub(r"[^\w]+", " ", specific).strip()
 
         if not specific:
-            if _any(self.loc_anywhere, text):
+            if self.allow_anywhere and _any(self.loc_anywhere, text):
                 return None
-            if self.check_description and _any(
-                self.loc_allow + self.desc_anywhere, job.description
-            ):
+            desc = self.loc_allow + (self.desc_anywhere if self.allow_anywhere else [])
+            if self.check_description and _any(desc, job.description):
                 return None
-            return "unclear"
+            return None if self.keep_unclear else "unclear"
 
         for label, pattern in self.loc_labels.items():
             if pattern.search(text):
@@ -151,3 +179,8 @@ def _location_strings(job: Job) -> list[str]:
     if isinstance(restrictions, list):
         places.extend(str(x) for x in restrictions)
     return places
+
+
+def _company_key(name: str) -> str:
+    """Company part of the dedupe key: lowercase, no legal suffixes ("Acme GmbH" == "acme")."""
+    return dedupe_key(str(name), "").split("|")[0]

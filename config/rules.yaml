@@ -18,10 +18,20 @@ title:
     - '\bbusiness\s+analyst\b'
     - '\bproject\s+manager\b'
     - '\bimplementation\b'
-  # ...and none of these (seniority out of range).
-  exclude:
-    - '\b(junior|jr|intern|internship|trainee|graduate|working\s+student|werkstudent|associate)\b'
-    - '\b(staff|principal|director|head\s+of|vp|vice\s+president|chief|cpo)\b'
+  # ...and none of these seniority levels. The profile's "Seniority to skip" picks which
+  # levels apply; without a profile, all of them do.
+  exclude_levels: [intern, junior, associate, staff, principal, director, head, vp]
+
+# Seniority levels by name, used by title.exclude_levels and the profile.
+seniority:
+  intern: '\b(intern|internship|trainee|graduate|working\s+student|werkstudent)\b'
+  junior: '\b(junior|jr)\b'
+  associate: '\bassociate\b'
+  staff: '\bstaff\b'
+  principal: '\bprincipal\b'
+  director: '\bdirector\b'
+  head: '\bhead\s+of\b'
+  vp: '\b(vp|vice\s+president|chief|cpo)\b'
 
 remote:
   # A job must be marked remote by its source, and its title/location must not say otherwise.
@@ -30,6 +40,8 @@ remote:
     - '\bon[\s-]?site\b'
     - '\bin[\s-]office\b'
     - '\boffice[\s-]based\b'
+  # Hybrid or on-site jobs here pass the remote stage when the profile allows local work.
+  local: ['\bsarajevo\b']
 
 location:
   # Specific places that make a job eligible. These win over anything else in the location.
@@ -39,6 +51,8 @@ location:
       - '\bbosnia\b'
       - '\bserbia\b'
       - '\bcroatia\b'
+      - '\bsarajevo\b'
+      - '\bbih\b'
     europe:
       - '\bemea\b'
       - '\beurope(an)?\b(?!\s+union)'
@@ -46,6 +60,18 @@ location:
     cet:
       - '\b(cet|cest)\b'
       - '\b(utc|gmt)\s*\+\s*0?[12](:00)?\b'
+  # Extra places the profile can switch on (all off without a profile). When on, they work
+  # like the allow groups above.
+  optional:
+    slovenia: ['\bslovenia\b']
+    montenegro: ['\bmontenegro\b']
+    north_macedonia: ['\b(north\s+)?macedonia\b']
+    balkans_region: ['\b(western\s+)?balkans?\b', '\bsouth[\s-]?east(ern)?\s+europe\b']
+    cee: ['\bcee\b', '\bcentral\s+(and|&)\s+eastern\s+europe\b', '\beastern\s+europe\b']
+  # When true, a plain "Remote" with no region anywhere is kept (location_match "unclear")
+  # for screening to judge, instead of being dropped. The profile can switch this on.
+  keep_unclear: false
+
   # Generic "anywhere" wording. Eligible only if the location names no other specific place
   # ("Anywhere in the World, United States" is US-only).
   anywhere:

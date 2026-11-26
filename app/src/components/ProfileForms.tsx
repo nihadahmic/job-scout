@@ -183,6 +183,19 @@ export function WritingForm({ profile }: { profile: Profile }) {
       >
         <textarea name="experience" rows={14} defaultValue={profile.experience} className="field w-full font-mono text-xs leading-relaxed" />
       </Section>
+      <Section title="What Gemini may read when drafting">
+        <label className="flex items-start gap-2 text-sm">
+          <input type="checkbox" name="allow_cv" defaultChecked={profile.preferences.ai.allow_cv} className="mt-1" />
+          <span>
+            Let Gemini read my current CV when drafting.
+            <span className="block text-xs text-zinc-500">
+              Your name, email, phone number and profile links are removed before it is sent. Employer names and the
+              rest go as written. Gemini&apos;s free tier may use what it receives to improve Google&apos;s products.
+              Only the draft buttons send anything; collecting and screening never do.
+            </span>
+          </span>
+        </label>
+      </Section>
       <Section title="Writing rules" hint="Style rules for cover letters and answers. Drafts are checked against the ones the app can test (length, em dashes, banned phrases).">
         <textarea name="writing_rules" rows={10} defaultValue={profile.writing_rules} className="field w-full font-mono text-xs leading-relaxed" />
       </Section>

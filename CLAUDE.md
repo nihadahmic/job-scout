@@ -37,7 +37,7 @@ Start with three, add more once the pipeline works end to end:
 - Company boards with public JSON: Greenhouse (`boards-api.greenhouse.io/v1/boards/<company>/jobs?content=true`), Lever (`api.lever.co/v0/postings/<company>?mode=json`), Ashby (`api.ashbyhq.com/posting-api/job-board/<company>`). Keep a `config/companies.yaml` watchlist.
 Be polite: one request per page, a short delay between requests, a clear User-Agent, cache responses during development.
 
-## Screening rules (put in `config/rules.yaml`, not hardcoded)
+## Screening rules (patterns in `config/rules.yaml`, choices in the app's Profile page; see docs/decisions.md #013)
 Roles: Product Manager / Product Owner first; adjacent roles (business analyst, implementation manager/specialist, technical project manager) second. Drop junior/intern and Staff/Principal/Director/Head/VP.
 
 Tiers:
@@ -51,7 +51,7 @@ Fit: 0-100 against `config/profile.md` (a skills-only profile). Keep fit >= 50 a
 Gemini output must be strict JSON validated with a schema (pydantic). On invalid output, retry once, then mark `screening_error` and move on.
 
 ## Privacy and secrets
-- Gemini free tier may use inputs to improve Google's products. Send Gemini only job text and `config/profile.md`, which is a skills summary with no name, contact details, employers' internal info or the CV file.
+- Gemini free tier may use inputs to improve Google's products. Screening sends Gemini only job text and the anonymized experience from the profile. Drafting may also send the current CV, only when the owner's "Let Gemini read my CV" switch (profile `preferences.ai.allow_cv`) is on, and always with name, email, phone and profile links stripped first. The owner opted in to this on 2026-11-26. Application facts (notice period, authorization, links) are filled in by the app and never sent to a model. Collecting never sends anything.
 - The full CV and contact details never go in the repo. Keep them in `private/` (gitignored) for the drafting step only.
 - Secrets live in GitHub Actions secrets and Vercel env vars: `GEMINI_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` (and `ANTHROPIC_API_KEY` only if drafting is picked up). Never print or commit them. Provide `.env.example`.
 

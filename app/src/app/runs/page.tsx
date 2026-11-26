@@ -15,7 +15,12 @@ type Stats = {
   error_messages?: string[];
 };
 
-const STAGES = ["title", "remote", "location", "authorization"];
+const STAGES = ["company", "title", "remote", "location", "authorization"];
+
+type Meta = {
+  profile?: string;
+  refilter?: { dropped?: Record<string, number>; restored?: number; skipped?: string };
+};
 
 export default async function RunsPage() {
   const supabase = await createClient();
@@ -35,8 +40,10 @@ export default async function RunsPage() {
       {error && <p className="mb-4 text-sm text-rose-600">{error.message}</p>}
       <div className="flex flex-col gap-2">
         {(runs ?? []).map((run) => {
-          const summary = run.summary as Record<string, Stats>;
-          const sources = Object.entries(summary);
+          const { _meta, ...summary } = run.summary as Record<string, Stats> & { _meta?: Meta };
+          const meta = (_meta ?? {}) as Meta;
+          const sources = Object.entries(summary) as [string, Stats][];
+          const reDropped = Object.values(meta.refilter?.dropped ?? {}).reduce((a, b) => a + b, 0);
           const total = (k: keyof Stats) => sources.reduce((s, [, v]) => s + ((v[k] as number) ?? 0), 0);
           const kept = sources.reduce((s, [, v]) => s + (v.passed?.authorization ?? 0), 0);
           const silent = sources.filter(([, v]) => v.fetched === 0).map(([n]) => SOURCE_LABELS[n] ?? n);
@@ -64,6 +71,16 @@ export default async function RunsPage() {
                 )}
               </summary>
               <div className="overflow-x-auto border-t border-zinc-200 px-4 py-3 dark:border-zinc-800">
+                {(meta.profile || meta.refilter) && (
+                  <p className="mb-3 text-xs text-zinc-500">
+                    {meta.profile}
+                    {meta.refilter && !meta.refilter.skipped && (
+                      <>
+                        {" · "}backlog re-check: {reDropped} dropped, {meta.refilter.restored ?? 0} brought back
+                      </>
+                    )}
+                  </p>
+                )}
                 <table className="w-full min-w-[760px] text-sm">
                   <thead className="text-left text-xs text-zinc-500">
                     <tr>

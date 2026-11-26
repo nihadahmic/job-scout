@@ -29,6 +29,17 @@ export async function middleware(request: NextRequest) {
   } = await supabase.auth.getUser();
 
   const path = request.nextUrl.pathname;
+
+  // If Supabase sends the magic link to the Site URL instead of /auth/callback (when the
+  // callback isn't in the allowed redirect URLs), keep the code instead of dropping it.
+  const code = request.nextUrl.searchParams.get("code");
+  if (!user && code && !path.startsWith("/auth/")) {
+    const url = request.nextUrl.clone();
+    url.pathname = "/auth/callback";
+    url.search = `?code=${encodeURIComponent(code)}`;
+    return NextResponse.redirect(url);
+  }
+
   if (!user && !PUBLIC_PATHS.some((p) => path.startsWith(p))) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";

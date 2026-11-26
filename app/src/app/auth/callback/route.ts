@@ -20,7 +20,8 @@ export async function GET(request: NextRequest) {
   }
 
   if (error) {
-    return NextResponse.redirect(`${origin}/login?error=link`);
+    const reason = /verifier/i.test(error.message) ? "browser" : "link";
+    return NextResponse.redirect(`${origin}/login?error=${reason}`);
   }
   return NextResponse.redirect(`${origin}/`);
 }

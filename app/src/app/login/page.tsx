@@ -1,12 +1,25 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+
+const LINK_ERRORS: Record<string, string> = {
+  browser:
+    "That link was opened in a different browser than the one that asked for it. " +
+    "Request a new link and open it in this browser (not inside your mail app).",
+  link: "That sign-in link didn't work. Links work once and expire after a while. Request a new one.",
+};
 import { createClient } from "@/lib/supabase/browser";
 
 export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "sent" | "error">("idle");
   const [message, setMessage] = useState("");
+  const [linkError, setLinkError] = useState("");
+
+  useEffect(() => {
+    const reason = new URLSearchParams(window.location.search).get("error");
+    if (reason) setLinkError(LINK_ERRORS[reason] ?? LINK_ERRORS.link);
+  }, []);
 
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -32,6 +45,11 @@ export default function LoginPage() {
     <main className="mx-auto flex min-h-screen max-w-sm flex-col justify-center px-4">
       <h1 className="mb-1 text-xl font-semibold">Job Scout</h1>
       <p className="mb-6 text-sm text-zinc-500">Sign in with a link sent to your email.</p>
+      {linkError && state !== "sent" && (
+        <p className="mb-4 rounded-md bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-200">
+          {linkError}
+        </p>
+      )}
       {state === "sent" ? (
         <p className="rounded-md bg-zinc-100 p-3 text-sm dark:bg-zinc-900">
           If that address has an account, a sign-in link is on its way. Open it on this device.

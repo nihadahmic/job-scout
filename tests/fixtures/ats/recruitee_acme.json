@@ -1,0 +1,217 @@
+{
+ "offers": [
+  {
+   "min_hours": null,
+   "requirements": "",
+   "position": 260,
+   "options_cover_letter": "off",
+   "location_question_visible": false,
+   "published_at": "2026-11-25 14:45:20 UTC",
+   "state_name": "Oost-Vlaanderen",
+   "hybrid": false,
+   "options_title": "off",
+   "max_hours": null,
+   "salary": {
+    "max": null,
+    "min": null,
+    "period": null,
+    "currency": null
+   },
+   "title": "Business Analyst",
+   "location": "Remote, Croatia",
+   "close_at": null,
+   "translations": {},
+   "options_salutation": "off",
+   "careers_apply_url": "https://aikidosecurity.recruitee.com/o/office-cat/c/new",
+   "created_at": "2026-11-25 13:56:44 UTC",
+   "on_site": false,
+   "tags": [],
+   "min_hours_per_week": null,
+   "state_code": "VOV",
+   "highlight": null,
+   "country_code": "BE",
+   "city": "Ghent",
+   "employment_type_code": "fulltime_permanent",
+   "sharing_description": "",
+   "sharing_title": "Office Cat 🐱",
+   "department": "People",
+   "max_hours_per_week": null,
+   "description": "<p>Placeholder description for tests.</p><ul><li>Placeholder item</li></ul>",
+   "education_code": "bachelor_degree",
+   "locations_question_required": true,
+   "locations": [
+    {
+     "id": 291909,
+     "name": "Ghent",
+     "state": "Oost-Vlaanderen",
+     "country": "Belgium",
+     "city": "Ghent",
+     "translations": {
+      "en": {
+       "name": "Ghent",
+       "city": "Ghent",
+       "postal_code": null,
+       "street": null,
+       "note": null
+      }
+     },
+     "country_code": "BE",
+     "state_code": "VOV",
+     "postal_code": null,
+     "street": null,
+     "note": null
+    }
+   ],
+   "dynamic_fields": [],
+   "remote": true,
+   "postal_code": null,
+   "experience_code": "entry_level",
+   "cover_image": null,
+   "mailbox_email": "job@example.com",
+   "company_name": "Aikido Security",
+   "id": 2840746,
+   "guid": "d3p91",
+   "open_questions": [],
+   "options_photo": "off",
+   "sharing_image": "https://recruitee-main.s3.eu-central-1.amazonaws.com/offers/2840746/normal_sharing_sabwkpdsf812.jpeg",
+   "options_cv": "required",
+   "country": "Belgium",
+   "options_phone": "required",
+   "locations_question": "What is your preferred work location?",
+   "status": "published",
+   "updated_at": "2026-11-25 14:46:43 UTC",
+   "slug": "office-cat",
+   "locations_question_type": "multiple_choice",
+   "category_code": "cleaning",
+   "careers_url": "https://aikidosecurity.recruitee.com/o/office-cat"
+  },
+  {
+   "min_hours": null,
+   "requirements": "",
+   "position": 259,
+   "options_cover_letter": "off",
+   "location_question_visible": false,
+   "published_at": "2026-11-24 21:21:27 UTC",
+   "state_name": "Dubai",
+   "hybrid": false,
+   "options_title": "off",
+   "max_hours": null,
+   "salary": {
+    "max": null,
+    "min": null,
+    "period": null,
+    "currency": null
+   },
+   "title": "Office Cat",
+   "location": "Dubai, Dubai, United Arab Emirates",
+   "close_at": null,
+   "translations": {},
+   "options_salutation": "off",
+   "careers_apply_url": "https://aikidosecurity.recruitee.com/o/account-manager-middle-east/c/new",
+   "created_at": "2026-11-24 21:20:06 UTC",
+   "on_site": true,
+   "tags": [],
+   "min_hours_per_week": null,
+   "state_code": "DU",
+   "highlight": null,
+   "country_code": "AE",
+   "city": "Dubai",
+   "employment_type_code": "fulltime_permanent",
+   "sharing_description": "Your role will be central in managing and nurturing relationships with our existing clients, ensuring they not only stick around but also find increasing value in our product.",
+   "sharing_title": "Account Manager Middle East",
+   "department": "Sales",
+   "max_hours_per_week": null,
+   "description": "<p>Placeholder description for tests.</p><ul><li>Placeholder item</li></ul>",
+   "education_code": "bachelor_degree",
+   "locations_question_required": true,
+   "locations": [
+    {
+     "id": 258724,
+     "name": "Dubai",
+     "state": "Dubai",
+     "country": "United Arab Emirates",
+     "city": "Dubai",
+     "translations": {
+      "en": {
+       "name": "Dubai",
+       "city": "Dubai",
+       "postal_code": null,
+       "street": null,
+       "note": null
+      }
+     },
+     "country_code": "AE",
+     "state_code": "DU",
+     "postal_code": null,
+     "street": null,
+     "note": null
+    }
+   ],
+   "dynamic_fields": [],
+   "remote": false,
+   "postal_code": null,
+   "experience_code": "mid_level",
+   "cover_image": null,
+   "mailbox_email": "job@example.com",
+   "company_name": "Aikido Security",
+   "id": 2839608,
+   "guid": "ln3rd",
+   "open_questions": [
+    {
+     "id": 4526887,
+     "position": 1,
+     "options": {},
+     "required": true,
+     "body": "Do you lives in Dubai? ",
+     "kind": "boolean",
+     "translations": {
+      "en": {
+       "body": "Do you lives in Dubai? "
+      }
+     },
+     "open_question_options": []
+    },
+    {
+     "id": 4526888,
+     "position": 2,
+     "options": {},
+     "required": true,
+     "body": "LinkedIn URL",
+     "kind": "string",
+     "translations": {
+      "en": {
+       "body": "LinkedIn URL"
+      }
+     },
+     "open_question_options": []
+    },
+    {
+     "id": 4526910,
+     "position": 3,
+     "options": {},
+     "required": true,
+     "body": "Do you have experience selling to developers, CTOs, etc. (technical profiles)?” ",
+     "kind": "boolean",
+     "translations": {
+      "en": {
+       "body": "Do you have experience selling to developers, CTOs, etc. (technical profiles)?” "
+      }
+     },
+     "open_question_options": []
+    }
+   ],
+   "options_photo": "off",
+   "sharing_image": "https://recruitee-main.s3.eu-central-1.amazonaws.com/offers/2839608/normal_sharing_b43bg1gw7ht4.jpg",
+   "options_cv": "required",
+   "country": "United Arab Emirates",
+   "options_phone": "required",
+   "locations_question": "What is your preferred work location?",
+   "status": "published",
+   "updated_at": "2026-11-25 08:29:13 UTC",
+   "slug": "account-manager-middle-east",
+   "locations_question_type": "multiple_choice",
+   "category_code": "security",
+   "careers_url": "https://aikidosecurity.recruitee.com/o/account-manager-middle-east"
+  }
+ ]
+}

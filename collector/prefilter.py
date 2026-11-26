@@ -46,6 +46,7 @@ class Prefilter:
             k: re.compile(v, re.IGNORECASE) for k, v in loc.get("labels", {}).items()
         }
         self.check_description = bool(loc.get("check_description_when_vague", True))
+        self.desc_anywhere = _compile(loc.get("description_anywhere", []))
         self.auth_place = _compile(auth.get("requires_place", []))
         self.auth_always = _compile(auth.get("always", []))
         self.auth_ignore = _compile(auth.get("ignore_places", []))
@@ -61,6 +62,9 @@ class Prefilter:
             if reason:
                 return Verdict(False, stage, f"{stage}:{reason}")
         return Verdict(True)
+
+    def title_ok(self, title: str) -> bool:
+        return self._title(Job("", "", "", "", title, "", True, None, "", None, None)) is None
 
     # Each stage returns None to pass, or a short reason to drop.
 
@@ -99,7 +103,9 @@ class Prefilter:
         if not specific:
             if _any(self.loc_anywhere, text):
                 return None
-            if self.check_description and _any(self.loc_allow, job.description):
+            if self.check_description and _any(
+                self.loc_allow + self.desc_anywhere, job.description
+            ):
                 return None
             return "unclear"
 

@@ -1,0 +1,73 @@
+[
+ {
+  "additionalPlain": "Placeholder description for tests.",
+  "additional": "<p>Placeholder description for tests.</p><ul><li>Placeholder item</li></ul>",
+  "categories": {
+   "commitment": "Full-Time",
+   "location": "Europe",
+   "allLocations": [
+    "Europe"
+   ],
+   "team": "Product"
+  },
+  "createdAt": 1795168894583,
+  "descriptionPlain": "Placeholder description for tests.",
+  "description": "<p>Placeholder description for tests.</p><ul><li>Placeholder item</li></ul>",
+  "id": "92030e79-194f-4600-b28e-95b57ceb0a0b",
+  "lists": [
+   {
+    "text": "What you will do",
+    "content": "<li>Placeholder item</li>"
+   }
+  ],
+  "salaryRange": {
+   "min": 74800,
+   "currency": "GBP",
+   "interval": "per-year-salary",
+   "max": 112200
+  },
+  "salaryDescription": "<p>Placeholder description for tests.</p><ul><li>Placeholder item</li></ul>",
+  "salaryDescriptionPlain": "Placeholder description for tests.",
+  "text": "Product Owner",
+  "country": "GB",
+  "workplaceType": "remote",
+  "opening": "<p>Placeholder description for tests.</p><ul><li>Placeholder item</li></ul>",
+  "openingPlain": "Placeholder description for tests.",
+  "descriptionBody": "<p>Placeholder description for tests.</p><ul><li>Placeholder item</li></ul>",
+  "descriptionBodyPlain": "Placeholder description for tests.",
+  "hostedUrl": "https://jobs.lever.co/airalo/92030e79-194f-4600-b28e-95b57ceb0a0b",
+  "applyUrl": "https://jobs.lever.co/airalo/92030e79-194f-4600-b28e-95b57ceb0a0b/apply"
+ },
+ {
+  "additionalPlain": "Placeholder description for tests.",
+  "additional": "<p>Placeholder description for tests.</p><ul><li>Placeholder item</li></ul>",
+  "categories": {
+   "commitment": "Full-Time",
+   "location": "Barcelona",
+   "allLocations": [
+    "Barcelona"
+   ]
+  },
+  "createdAt": 1795168719228,
+  "descriptionPlain": "Placeholder description for tests.",
+  "description": "<p>Placeholder description for tests.</p><ul><li>Placeholder item</li></ul>",
+  "id": "f55f0032-7d0a-4002-9b7e-f4bdccd38b6a",
+  "lists": [
+   {
+    "text": "What you will do",
+    "content": "<li>Placeholder item</li>"
+   }
+  ],
+  "salaryDescription": "<p>Placeholder description for tests.</p><ul><li>Placeholder item</li></ul>",
+  "salaryDescriptionPlain": "Placeholder description for tests.",
+  "text": "Product Manager",
+  "country": "ES",
+  "workplaceType": "hybrid",
+  "opening": "<p>Placeholder description for tests.</p><ul><li>Placeholder item</li></ul>",
+  "openingPlain": "Placeholder description for tests.",
+  "descriptionBody": "<p>Placeholder description for tests.</p><ul><li>Placeholder item</li></ul>",
+  "descriptionBodyPlain": "Placeholder description for tests.",
+  "hostedUrl": "https://jobs.lever.co/airalo/f55f0032-7d0a-4002-9b7e-f4bdccd38b6a",
+  "applyUrl": "https://jobs.lever.co/airalo/f55f0032-7d0a-4002-9b7e-f4bdccd38b6a/apply"
+ }
+]

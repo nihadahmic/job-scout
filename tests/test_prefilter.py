@@ -117,6 +117,18 @@ def test_vague_location_falls_back_to_description(prefilter):
     assert prefilter.check(j).keep
 
 
+@pytest.mark.parametrize(
+    ("description", "keep"),
+    [
+        ("We hire worldwide.", True),
+        ("Work from anywhere in the world.", True),
+        ("A global leader in payments.", False),
+    ],
+)
+def test_vague_location_anywhere_in_description(prefilter, description, keep):
+    assert prefilter.check(job(location="Remote", description=description)).keep is keep
+
+
 def test_structured_country_list(prefilter):
     j = job(location="Remote", location_restrictions=["Serbia", "Croatia"])
     assert prefilter.check(j).keep

@@ -1,0 +1,96 @@
+{
+ "apiVersion": "1",
+ "jobs": [
+  {
+   "id": "d457e0f1-2418-4759-b4ed-e41fdff50bf0",
+   "title": "Product Manager, Growth",
+   "department": "Associates",
+   "team": "Associates",
+   "employmentType": "Intern",
+   "location": "Remote",
+   "shouldDisplayCompensationOnJobPostings": false,
+   "secondaryLocations": [
+    {
+     "location": "Europe"
+    }
+   ],
+   "publishedAt": "2026-08-03T08:33:52.099+00:00",
+   "isListed": true,
+   "isRemote": true,
+   "workplaceType": "Remote",
+   "address": {
+    "postalAddress": {
+     "addressCountry": "France"
+    }
+   },
+   "jobUrl": "https://jobs.ashbyhq.com/alan/d457e0f1-2418-4759-b4ed-e41fdff50bf0",
+   "applyUrl": "https://jobs.ashbyhq.com/alan/d457e0f1-2418-4759-b4ed-e41fdff50bf0/application",
+   "descriptionHtml": "<p>Placeholder description for tests.</p><ul><li>Placeholder item</li></ul>",
+   "descriptionPlain": "Placeholder description for tests.",
+   "compensation": {
+    "compensationTierSummary": null,
+    "scrapeableCompensationSalarySummary": null,
+    "compensationTiers": [],
+    "summaryComponents": []
+   }
+  },
+  {
+   "id": "a5973d82-d4f2-48f8-8c96-70de49f14c9b",
+   "title": "Product Manager, Care",
+   "department": "Insurance",
+   "team": "Insurance",
+   "employmentType": "FullTime",
+   "location": "Paris, France",
+   "shouldDisplayCompensationOnJobPostings": false,
+   "secondaryLocations": [],
+   "publishedAt": "2026-10-27T13:27:12.194+00:00",
+   "isListed": true,
+   "isRemote": true,
+   "workplaceType": "Hybrid",
+   "address": {
+    "postalAddress": {
+     "addressCountry": "France"
+    }
+   },
+   "jobUrl": "https://jobs.ashbyhq.com/alan/a5973d82-d4f2-48f8-8c96-70de49f14c9b",
+   "applyUrl": "https://jobs.ashbyhq.com/alan/a5973d82-d4f2-48f8-8c96-70de49f14c9b/application",
+   "descriptionHtml": "<p>Placeholder description for tests.</p><ul><li>Placeholder item</li></ul>",
+   "descriptionPlain": "Placeholder description for tests.",
+   "compensation": {
+    "compensationTierSummary": null,
+    "scrapeableCompensationSalarySummary": null,
+    "compensationTiers": [],
+    "summaryComponents": []
+   }
+  },
+  {
+   "id": "9c460261-bfbe-4722-bbc3-e5ce3264f3c5",
+   "title": "Unlisted Product Manager",
+   "department": "Medical Team",
+   "team": "Medical Team",
+   "employmentType": "Contract",
+   "location": "Paris, France",
+   "shouldDisplayCompensationOnJobPostings": false,
+   "secondaryLocations": [],
+   "publishedAt": "2026-10-21T09:45:27.281+00:00",
+   "isListed": false,
+   "isRemote": true,
+   "workplaceType": "Remote",
+   "address": {
+    "postalAddress": {
+     "addressCountry": "France"
+    }
+   },
+   "jobUrl": "https://jobs.ashbyhq.com/alan/9c460261-bfbe-4722-bbc3-e5ce3264f3c5",
+   "applyUrl": "https://jobs.ashbyhq.com/alan/9c460261-bfbe-4722-bbc3-e5ce3264f3c5/application",
+   "descriptionHtml": "<p>Placeholder description for tests.</p><ul><li>Placeholder item</li></ul>",
+   "descriptionPlain": "Placeholder description for tests.",
+   "compensation": {
+    "compensationTierSummary": null,
+    "scrapeableCompensationSalarySummary": null,
+    "compensationTiers": [],
+    "summaryComponents": []
+   }
+  }
+ ]
+}

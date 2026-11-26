@@ -20,15 +20,29 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="collector", description=__doc__)
     parser.add_argument("--config", type=Path, default=ROOT / "config" / "sources.yaml")
     parser.add_argument("--rules", type=Path, default=ROOT / "config" / "rules.yaml")
+    parser.add_argument(
+        "--companies",
+        type=Path,
+        help="company watchlist for ATS sources (default: private/companies.yaml)",
+    )
     parser.add_argument("--db", type=Path, default=ROOT / "data" / "jobs.sqlite")
     parser.add_argument(
         "--cache", action="store_true", help="cache HTTP responses in .cache/ (development)"
+    )
+    parser.add_argument(
+        "--verbose",
+        action="store_true",
+        help="log every request URL (off by default: CI logs are public)",
     )
     parser.add_argument("--only", nargs="*", choices=sorted(SOURCES), help="run these sources")
     args = parser.parse_args(argv)
 
     logging.basicConfig(level=logging.INFO, format="%(levelname)s %(name)s: %(message)s")
+    # Request URLs would list the private company watchlist in the public Actions log.
+    logging.getLogger("httpx").setLevel(logging.INFO if args.verbose else logging.WARNING)
     config = load_config(args.config)
+    if args.companies:
+        config.setdefault("ats", {})["companies_file"] = str(args.companies.resolve())
     http = config.get("http") or {}
     client = HttpClient(
         user_agent=http.get("user_agent", "job-scout/0.1"),

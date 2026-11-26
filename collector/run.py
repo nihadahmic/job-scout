@@ -13,7 +13,7 @@ import yaml
 
 from collector.http import Fetcher
 from collector.prefilter import STAGES, Prefilter
-from collector.sources import SOURCES
+from collector.sources import ATS_SOURCES, SOURCES
 from collector.store import Store
 from collector.text import utc_now
 
@@ -71,11 +71,16 @@ def collect(
     stats: dict[str, SourceStats] = {}
 
     for name, source_cls in SOURCES.items():
+        if name not in config or (only and name not in only):
+            continue  # a source runs only when config/sources.yaml has an entry for it
         source_config = config.get(name) or {}
-        if only and name not in only:
-            continue
         if not source_config.get("enabled", True):
             continue
+        if source_cls in ATS_SOURCES:
+            # Shared ATS settings (watchlist path) plus the title check, so sources that
+            # need a request per job can skip obvious non-matches first.
+            source_config = {**(config.get("ats") or {}), **source_config}
+            source_config["_title_ok"] = getattr(prefilter, "title_ok", None)
         s = stats[name] = SourceStats()
         source = source_cls(client, source_config)
         try:

@@ -29,3 +29,22 @@ weworkremotely:
   enabled: true
   feeds:
     - https://weworkremotely.com/categories/remote-product-jobs.rss
+
+# Company job boards on applicant tracking systems. Companies come from the watchlist,
+# matched to an ATS by scripts/detect_ats.py. The watchlist is private: local runs read
+# private/companies.yaml, CI passes --companies private-data/companies.yaml.
+ats:
+  companies_file: private/companies.yaml
+
+greenhouse:
+  enabled: true
+lever:
+  enabled: true
+ashby:
+  enabled: true
+workable:
+  enabled: true
+recruitee:
+  enabled: true
+teamtailor:
+  enabled: true

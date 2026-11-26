@@ -49,8 +49,15 @@ location:
     us_only: '\b(usa?|united\s+states|america|north\s+america|canada)\b'
     uk_only: '\b(uk|united\s+kingdom|great\s+britain|england|london)\b'
     eu_only: '\b(eu|european\s+union|eea)\b'
-  # When the location is vague, look for allowed wording in the description instead.
+  # When the location is vague, look for allowed wording in the description instead:
+  # any `allow` pattern, or one of these. Plain "global" is too common in company blurbs.
   check_description_when_vague: true
+  description_anywhere:
+    - '\b(hire|hiring|work|live|based)\s+(from\s+)?(anywhere|worldwide)\b'
+    - '\banywhere\s+in\s+the\s+world\b'
+    - '\blocation[\s-]independent\b'
+    - '\bremote[\s-]first,?\s+(worldwide|globally)\b'
+
 
 authorization:
   # Drop when the description requires work authorization or residence in a place that is

@@ -1,0 +1,46 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<rss xmlns:tt="https://teamtailor.com/locations" version="2.0">
+  <channel>
+    <title>Akamas</title>
+    <description>Current openings at Akamas</description>
+    <link>https://careers.akamas.io/jobs</link>
+    <item>
+      <title>Technical Project Manager</title>
+      <description>&lt;p&gt;Placeholder. We hire across Europe.&lt;/p&gt;</description>
+      <pubDate>Mon, 12 Oct 2026 16:47:22 +0200</pubDate>
+      <link>https://careers.akamas.io/jobs/8533447-customer-success-engineer</link>
+      <remoteStatus>fully</remoteStatus>
+      <guid>d3470f86-49a5-4072-b4d7-c79d55ef2634</guid>
+      <tt:locations>
+        <tt:location>
+          <tt:name>Milano</tt:name>
+          <tt:address>Example street 1</tt:address>
+          <tt:zip>20158</tt:zip>
+          <tt:city>Milano</tt:city>
+          <tt:country>Italy</tt:country>
+        </tt:location>
+      </tt:locations>
+      <tt:department>Customer Success</tt:department>
+      <tt:role>Customer Success Engineer</tt:role>
+    </item>
+    <item>
+      <title>Product Manager</title>
+      <description>&lt;p&gt;Placeholder.&lt;/p&gt;</description>
+      <pubDate>Mon, 12 Oct 2026 12:25:27 +0200</pubDate>
+      <link>https://careers.akamas.io/jobs/8531275-developer-relations-engineer</link>
+      <remoteStatus>hybrid</remoteStatus>
+      <guid>1fdb22c0-d814-4c83-917d-d421e5e633de</guid>
+      <tt:locations>
+        <tt:location>
+          <tt:name>Milano</tt:name>
+          <tt:address>Example street 1</tt:address>
+          <tt:zip>20158</tt:zip>
+          <tt:city>Milano</tt:city>
+          <tt:country>Italy</tt:country>
+        </tt:location>
+      </tt:locations>
+      <tt:department>Product</tt:department>
+      <tt:role>DevRel</tt:role>
+    </item>
+    </channel>
+</rss>

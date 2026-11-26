@@ -82,7 +82,9 @@ def main(argv: list[str] | None = None) -> int:
             prefs = None
             meta["profile"] = f"couldn't read the profile ({type(exc).__name__}), using rules.yaml"
         prefilter = Prefilter(apply_profile(rules, prefs))
-        print(meta["profile"])
+        # The details go to the private runs table; the public Actions log only says
+        # whether a profile was used.
+        print("profile: loaded" if prefs else meta["profile"].split(",")[0])
 
         # Re-apply the current preferences to the stored backlog before collecting.
         if args.only:

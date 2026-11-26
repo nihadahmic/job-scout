@@ -39,7 +39,11 @@ class Prefilter:
         self.title_include = _compile(t.get("include", []))
         self.title_exclude = _compile(t.get("exclude", []))
         self.remote_reject = _compile(r.get("reject", []))
-        self.loc_allow = _compile(loc.get("allow", []))
+        allow = loc.get("allow", {})
+        if isinstance(allow, list):  # flat list: one unnamed group
+            allow = {"allowed": allow}
+        self.loc_allow_groups = {label: _compile(p) for label, p in allow.items()}
+        self.loc_allow = [p for group in self.loc_allow_groups.values() for p in group]
         self.loc_anywhere = _compile(loc.get("anywhere", []))
         self.loc_vague = _compile(loc.get("vague", []))
         self.loc_labels = {
@@ -62,6 +66,18 @@ class Prefilter:
             if reason:
                 return Verdict(False, stage, f"{stage}:{reason}")
         return Verdict(True)
+
+    def location_match(self, job: Job) -> str | None:
+        """Why a kept job passed the location stage: an allow label, worldwide or description."""
+        text = " | ".join(_location_strings(job))
+        for label, patterns in self.loc_allow_groups.items():
+            if _any(patterns, text):
+                return label
+        if _any(self.loc_anywhere, text):
+            return "worldwide"
+        if self.check_description and _any(self.loc_allow + self.desc_anywhere, job.description):
+            return "description"
+        return None
 
     def title_ok(self, title: str) -> bool:
         return self._title(Job("", "", "", "", title, "", True, None, "", None, None)) is None

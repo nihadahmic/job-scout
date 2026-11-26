@@ -7,6 +7,7 @@ import logging
 import sys
 from pathlib import Path
 
+from collector.enrich import Enricher
 from collector.http import HttpClient
 from collector.prefilter import Prefilter
 from collector.run import collect, load_config, source_lines, summary_line
@@ -52,7 +53,10 @@ def main(argv: list[str] | None = None) -> int:
     )
     store = Store(args.db)
     try:
-        stats = collect(config, store, client, Prefilter.from_file(args.rules), only=args.only)
+        rules = load_config(args.rules)
+        stats = collect(
+            config, store, client, Prefilter(rules), only=args.only, enricher=Enricher(rules)
+        )
         for line in source_lines(stats):
             print(line)
         print(summary_line(stats, store.count()))

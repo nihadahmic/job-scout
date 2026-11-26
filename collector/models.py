@@ -32,6 +32,11 @@ class Job:
     apply_url: str | None
     first_seen_at: str | None = None
     extra: dict[str, Any] = field(default_factory=dict)
+    # Filled in by the collector for jobs that pass the prefilter (collector/enrich.py)
+    category: str | None = None
+    location_match: str | None = None
+    salary_min_eur_month: float | None = None
+    salary_max_eur_month: float | None = None
 
     @property
     def id(self) -> str:

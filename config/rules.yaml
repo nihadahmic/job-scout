@@ -2,6 +2,14 @@
 # (Gemini) only ever sees roles that pass. Patterns are case-insensitive regular expressions.
 # Stages run in order; the first stage a job fails is its drop reason.
 
+# Job category, from the title. First match wins, so the more specific ones come first.
+categories:
+  product_owner: '\bproduct\s+owner\b|\bpo\b'
+  product_manager: '\bproduct\s+(manager|management|lead)\b|\bpm\b'
+  business_analyst: '\bbusiness\s+analyst\b'
+  project_manager: '\bproject\s+manager\b'
+  implementation: '\bimplementation\b'
+
 title:
   # Keep a job only if its title matches one of these.
   include:
@@ -25,15 +33,19 @@ remote:
 
 location:
   # Specific places that make a job eligible. These win over anything else in the location.
+  # Grouped by label; the first matching label is saved as the job's location_match.
   allow:
-    - '\bbosnia\b'
-    - '\bserbia\b'
-    - '\bcroatia\b'
-    - '\bemea\b'
-    - '\beurope(an)?\b(?!\s+union)'
-    - '\b(cet|cest)\b'
-    - '\bcentral\s+europe(an)?\b'
-    - '\b(utc|gmt)\s*\+\s*0?[12](:00)?\b'
+    balkans:
+      - '\bbosnia\b'
+      - '\bserbia\b'
+      - '\bcroatia\b'
+    europe:
+      - '\bemea\b'
+      - '\beurope(an)?\b(?!\s+union)'
+      - '\bcentral\s+europe(an)?\b'
+    cet:
+      - '\b(cet|cest)\b'
+      - '\b(utc|gmt)\s*\+\s*0?[12](:00)?\b'
   # Generic "anywhere" wording. Eligible only if the location names no other specific place
   # ("Anywhere in the World, United States" is US-only).
   anywhere:
@@ -75,3 +87,11 @@ authorization:
     - '\b(us|u\.s\.)\s+citizen(ship)?\b'
     - '\bgreen\s+card\b'
     - '\bsecurity\s+clearance\b'
+
+# Approximate salary in EUR per month, for filtering only (the original text is always kept).
+salary:
+  # Rough rates to EUR. Update now and then; they only need to be in the right range.
+  fx_to_eur: {EUR: 1, USD: 0.9, GBP: 1.15, CHF: 1.05, CAD: 0.65, AUD: 0.6, PLN: 0.23,
+              SEK: 0.087, NOK: 0.085, DKK: 0.134, CZK: 0.04, RON: 0.2, INR: 0.0105, BRL: 0.17, HUF: 0.0025}
+  hours_per_month: 160
+  days_per_month: 20

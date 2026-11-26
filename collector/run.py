@@ -11,6 +11,7 @@ from typing import Any
 
 import yaml
 
+from collector.enrich import Enricher
 from collector.http import Fetcher
 from collector.prefilter import STAGES, Prefilter
 from collector.sources import ATS_SOURCES, SOURCES
@@ -66,6 +67,7 @@ def collect(
     prefilter: Prefilter,
     only: list[str] | None = None,
     now: Callable[[], str] = utc_now,
+    enricher: Enricher | None = None,
 ) -> dict[str, SourceStats]:
     started_at = now()
     stats: dict[str, SourceStats] = {}
@@ -94,6 +96,7 @@ def collect(
         s.error_messages.extend(getattr(source, "errors", []))
         s.errors += len(getattr(source, "errors", []))
 
+        kept = []
         for raw in raws:
             try:
                 job = source.normalize(raw)
@@ -110,16 +113,28 @@ def collect(
                 s.passed[stage] += 1
             if not verdict.keep:
                 s.dropped[verdict.reason] += 1
-                # Rows stored before the prefilter existed get marked so screening skips them.
-                store.mark_dropped(job.id, verdict.reason)
                 continue
+            kept.append(_enrich(job, prefilter, enricher))
 
-            outcome = store.add(job, seen_at=started_at)
+        for outcome in store.add_many(kept, seen_at=started_at):
             setattr(s, outcome, getattr(s, outcome) + 1)
 
     store.record_run(started_at, now(), {k: v.as_dict() for k, v in stats.items()})
     store.commit()
     return stats
+
+
+def _enrich(job, prefilter, enricher: Enricher | None):
+    location_match = getattr(prefilter, "location_match", None)
+    if location_match:
+        job.location_match = location_match(job)
+    if enricher:
+        job.category = enricher.category(job.title)
+        salary = enricher.salary(job.salary_text)
+        if salary:
+            job.salary_min_eur_month = salary.min_eur_month
+            job.salary_max_eur_month = salary.max_eur_month
+    return job
 
 
 def _counts(s: SourceStats) -> str:

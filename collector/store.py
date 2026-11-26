@@ -26,6 +26,10 @@ CREATE TABLE IF NOT EXISTS jobs (
     first_seen_at   TEXT NOT NULL,
     dedupe_key      TEXT NOT NULL,
     extra           TEXT,                      -- JSON, source-specific fields
+    category        TEXT,
+    location_match  TEXT,
+    salary_min_eur_month REAL,
+    salary_max_eur_month REAL,
     -- screening (step 2)
     tier            INTEGER,
     fit             INTEGER,
@@ -34,6 +38,8 @@ CREATE TABLE IF NOT EXISTS jobs (
     dropped_reason  TEXT,
     -- review (step 3+)
     status          TEXT NOT NULL DEFAULT 'new',
+    status_changed_at TEXT,
+    notes           TEXT,
     cover_letter    TEXT,
     answers         TEXT,                      -- JSON
     salary_answer   TEXT,
@@ -67,7 +73,20 @@ _JOB_COLUMNS = (
     "first_seen_at",
     "dedupe_key",
     "extra",
+    "category",
+    "location_match",
+    "salary_min_eur_month",
+    "salary_max_eur_month",
 )
+# Columns added after the first schema; older local databases get them on open.
+_ADDED_COLUMNS = {
+    "category": "TEXT",
+    "location_match": "TEXT",
+    "salary_min_eur_month": "REAL",
+    "salary_max_eur_month": "REAL",
+    "status_changed_at": "TEXT",
+    "notes": "TEXT",
+}
 
 
 class Store:
@@ -75,6 +94,10 @@ class Store:
         path.parent.mkdir(parents=True, exist_ok=True)
         self.conn = sqlite3.connect(path)
         self.conn.executescript(SCHEMA)
+        have = {r[1] for r in self.conn.execute("PRAGMA table_info(jobs)")}
+        for column, kind in _ADDED_COLUMNS.items():
+            if column not in have:
+                self.conn.execute(f"ALTER TABLE jobs ADD COLUMN {column} {kind}")
 
     def add(self, job: Job, seen_at: str) -> str:
         """Insert a job if it is new. Returns 'new', 'known' (same id) or 'duplicate'."""
@@ -96,6 +119,9 @@ class Store:
             tuple(row[c] for c in _JOB_COLUMNS),
         )
         return "new"
+
+    def add_many(self, jobs: list[Job], seen_at: str) -> list[str]:
+        return [self.add(job, seen_at) for job in jobs]
 
     def mark_dropped(self, job_id: str, reason: str) -> None:
         """Set dropped_reason on an already stored, not yet screened job."""

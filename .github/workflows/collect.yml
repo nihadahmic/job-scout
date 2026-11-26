@@ -1,12 +1,13 @@
 name: collect
 
-# Code lives in this (public) repo. Collected data lives in a separate private repo,
-# so job descriptions and application history are never published. See docs/decisions.md #008.
+# Code lives in this (public) repo. Jobs go to Supabase; the private data repo holds the
+# private config the collector reads (company watchlist). See docs/decisions.md #008, #012.
 #
 # Setup:
-#   - private repo, default <owner>/job-scout-data (override with the DATA_REPO repo variable)
-#   - DATA_REPO_TOKEN secret: fine-grained token, that repo only, Contents: read and write
-#   - companies.yaml in the data repo: the ATS watchlist (scripts/import_companies.py, detect_ats.py)
+#   - SUPABASE_URL, SUPABASE_SERVICE_KEY secrets: the project URL and its secret key
+#   - DATA_REPO_TOKEN secret: fine-grained token for the data repo, Contents: read
+#   - data repo, default <owner>/job-scout-data (override with the DATA_REPO repo variable),
+#     holding companies.yaml (scripts/import_companies.py, scripts/detect_ats.py)
 
 on:
   schedule:
@@ -30,12 +31,18 @@ jobs:
     steps:
       - uses: actions/checkout@v5
 
-      - name: Check data repo token
+      - name: Check secrets
         env:
           DATA_REPO_TOKEN: ${{ secrets.DATA_REPO_TOKEN }}
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
-          if [ -z "$DATA_REPO_TOKEN" ]; then
-            echo "::error::DATA_REPO_TOKEN secret is not set. See the setup notes at the top of this workflow."
+          missing=""
+          for name in DATA_REPO_TOKEN SUPABASE_URL SUPABASE_SERVICE_KEY; do
+            [ -z "${!name}" ] && missing="$missing $name"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::Missing secrets:$missing. See the setup notes at the top of this workflow."
             exit 1
           fi
 
@@ -57,22 +64,11 @@ jobs:
         run: uv run pytest -q
 
       - name: Collect
-        # Counts only, no listing content, so the summary is safe to show in public run logs.
+        # Counts only, no listing content or URLs, so the summary is safe in public run logs.
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: |
           uv run python -m collector \
-            --db private-data/jobs.sqlite \
             --companies private-data/companies.yaml \
             | tee -a "$GITHUB_STEP_SUMMARY"
-
-      - name: Commit data to private repo
-        working-directory: private-data
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add jobs.sqlite
-          if git diff --cached --quiet; then
-            echo "No new listings."
-          else
-            git commit -m "data: collector run $(date -u +%Y-%m-%d)"
-            git push
-          fi

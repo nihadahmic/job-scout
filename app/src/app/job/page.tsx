@@ -1,6 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { DraftPanel } from "@/components/DraftPanel";
 import { NotesForm, StatusForm } from "@/components/JobActions";
+import { geminiConfigured } from "@/lib/drafting/gemini";
+import { suggestSalary } from "@/lib/drafting/salary";
+import { withDefaults } from "@/lib/profile";
 import { Nav } from "@/components/Nav";
 import {
   CATEGORY_LABELS,
@@ -15,23 +19,30 @@ import {
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
+// Drafting with Gemini runs from this page and can take longer than the default limit.
+export const maxDuration = 60;
 
 export default async function JobPage({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
   const { id } = await searchParams;
   if (!id) notFound();
 
   const supabase = await createClient();
-  const [{ data: job }, { data: history }] = await Promise.all([
+  const [{ data: job }, { data: history }, { data: profileRow }] = await Promise.all([
     supabase.from("jobs").select("*").eq("id", id).maybeSingle(),
     supabase
       .from("status_history")
       .select("from_status, to_status, note, reason, changed_at")
       .eq("job_id", id)
       .order("changed_at", { ascending: false }),
+    supabase.from("profile").select("preferences").maybeSingle(),
   ]);
   if (!job) notFound();
 
   const status = job.status as Status;
+  const salary = suggestSalary(withDefaults(profileRow).preferences.salary, {
+    min: job.salary_min_eur_month,
+    max: job.salary_max_eur_month,
+  });
   const facts: [string, React.ReactNode][] = [
     ["Category", CATEGORY_LABELS[job.category ?? ""] ?? "—"],
     ["Location", job.location_text || "—"],
@@ -77,10 +88,21 @@ export default async function JobPage({ searchParams }: { searchParams: Promise<
       </header>
 
       <div className="grid gap-8 md:grid-cols-[1fr_320px]">
-        <section className="order-2 md:order-1">
+        <section className="order-2 flex flex-col gap-6 md:order-1">
+          <DraftPanel
+            jobId={job.id}
+            geminiReady={geminiConfigured()}
+            canLoadQuestions={job.source === "greenhouse" || job.source === "recruitee"}
+            salary={{ text: salary.text, basis: salary.basis, belowFloor: salary.belowFloor }}
+            savedSalary={job.salary_answer}
+            savedLetter={job.cover_letter}
+            savedAnswers={job.answers}
+          />
+          <div>
           <h2 className="mb-2 text-sm font-semibold uppercase tracking-wide text-zinc-500">Description</h2>
           <div className="whitespace-pre-wrap text-sm leading-relaxed">
             {job.description || <span className="text-zinc-500">No description from this source. Open the posting.</span>}
+          </div>
           </div>
         </section>
 

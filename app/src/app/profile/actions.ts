@@ -77,6 +77,7 @@ export async function savePreferences(_: SaveResult | null, form: FormData): Pro
 export async function saveFacts(_: SaveResult | null, form: FormData): Promise<SaveResult> {
   const sponsorship = text(form.get("needs_sponsorship"), 3);
   const facts: Facts = {
+    full_name: text(form.get("full_name"), 120),
     location: text(form.get("location"), 120),
     notice_period: text(form.get("notice_period"), 120),
     available_from: text(form.get("available_from"), 40),

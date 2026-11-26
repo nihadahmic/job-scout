@@ -41,6 +41,7 @@ export type Preferences = {
 };
 
 export type Facts = {
+  full_name: string;
   location: string;
   notice_period: string;
   available_from: string;
@@ -78,6 +79,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
 };
 
 export const EMPTY_FACTS: Facts = {
+  full_name: "",
   location: "",
   notice_period: "",
   available_from: "",

@@ -145,6 +145,9 @@ export function FactsForm({ profile }: { profile: Profile }) {
     <form action={action} className="flex flex-col gap-4">
       <Section title="Facts for application forms" hint="The app fills these into answers itself. They are never sent to an AI model.">
         <div className="grid gap-3 sm:grid-cols-2">
+          <Field label="Full name" hint="Added to the cover letter sign-off, and used to remove your name from the CV text before Gemini sees it.">
+            <input name="full_name" defaultValue={f.full_name} className="field" />
+          </Field>
           <Field label="Where you're based"><input name="location" defaultValue={f.location} className="field" /></Field>
           <Field label="Languages"><input name="languages" defaultValue={f.languages} className="field" /></Field>
           <Field label="Notice period"><input name="notice_period" defaultValue={f.notice_period} className="field" /></Field>

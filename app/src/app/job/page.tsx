@@ -1,8 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { DraftPanel } from "@/components/DraftPanel";
-import { NotesForm, StatusForm } from "@/components/JobActions";
+import { StatusForm } from "@/components/JobActions";
 import { Nav } from "@/components/Nav";
+import { NotesThread, noteTime } from "@/components/NotesThread";
+import type { JobNote } from "@/app/job/note-actions";
 import { geminiConfigured } from "@/lib/drafting/gemini";
 import { suggestSalary } from "@/lib/drafting/salary";
 import type { LetterDraft } from "@/app/job/draft-actions";
@@ -18,7 +20,6 @@ import {
   TIER_LABELS,
   dateWithAge,
   fitStyle,
-  formatDate,
   formatEur,
   type Status,
 } from "@/lib/labels";
@@ -37,7 +38,7 @@ export default async function JobPage({ searchParams }: { searchParams: Promise<
   if (!id) notFound();
 
   const supabase = await createClient();
-  const [{ data: job }, { data: history }, { data: profileRow }, { data: drafts }] = await Promise.all([
+  const [{ data: job }, { data: history }, { data: profileRow }, { data: drafts }, { data: notesData }] = await Promise.all([
     supabase.from("jobs").select("*").eq("id", id).maybeSingle(),
     supabase
       .from("status_history")
@@ -51,7 +52,27 @@ export default async function JobPage({ searchParams }: { searchParams: Promise<
       .eq("job_id", id)
       .order("created_at", { ascending: false })
       .limit(50),
+    supabase
+      .from("job_notes")
+      .select("id, created_at, edited_at, body, legacy")
+      .eq("job_id", id)
+      .order("created_at", { ascending: false }),
   ]);
+  const notes = (notesData ?? []) as JobNote[];
+  type Event =
+    | { kind: "status"; at: string; from: string | null; to: string; reason: string | null; note: string | null }
+    | { kind: "note"; at: string; body: string; legacy: boolean };
+  const timeline: Event[] = [
+    ...(history ?? []).map((h) => ({
+      kind: "status" as const,
+      at: h.changed_at,
+      from: h.from_status,
+      to: h.to_status,
+      reason: h.reason,
+      note: h.note,
+    })),
+    ...notes.map((n) => ({ kind: "note" as const, at: n.created_at, body: n.body, legacy: n.legacy })),
+  ].sort((a, b) => b.at.localeCompare(a.at));
   if (!job) notFound();
 
   const status = job.status as Status;
@@ -151,7 +172,9 @@ export default async function JobPage({ searchParams }: { searchParams: Promise<
               >
                 {TABS[t]}
                 {t === "kit" && job.cover_letter ? <span className="ml-1 text-xs text-emerald-600">●</span> : null}
-                {t === "history" && history?.length ? <span className="ml-1 text-xs text-zinc-400">{history.length}</span> : null}
+                {t === "history" && (history?.length ?? 0) + notes.length ? (
+                  <span className="ml-1 text-xs text-zinc-400">{(history?.length ?? 0) + notes.length}</span>
+                ) : null}
               </Link>
             ))}
           </nav>
@@ -201,25 +224,38 @@ export default async function JobPage({ searchParams }: { searchParams: Promise<
 
           {tab === "history" && (
             <section>
-              {history?.length ? (
+              {timeline.length ? (
                 <ol className="relative ml-2 border-l border-zinc-200 dark:border-zinc-800">
-                  {history.map((h, i) => (
+                  {timeline.map((e, i) => (
                     <li key={i} className="mb-4 ml-4">
-                      <span className="absolute -left-1.5 mt-1.5 h-3 w-3 rounded-full border-2 border-white bg-zinc-400 dark:border-zinc-950" />
-                      <p className="text-xs text-zinc-500">{formatDate(h.changed_at)}</p>
-                      <p className="text-sm">
-                        {STATUS_LABELS[h.from_status as Status] ?? "Added"} →{" "}
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[h.to_status as Status]}`}>
-                          {STATUS_LABELS[h.to_status as Status]}
-                        </span>
+                      <span
+                        className={`absolute -left-1.5 mt-1.5 h-3 w-3 rounded-full border-2 border-white dark:border-zinc-950 ${
+                          e.kind === "note" ? "bg-amber-400" : "bg-zinc-400"
+                        }`}
+                      />
+                      <p className="text-xs text-zinc-500">
+                        {e.kind === "note" && e.legacy ? "Earlier note · " : ""}
+                        {noteTime(e.at)}
                       </p>
-                      {h.reason && <p className="text-sm text-zinc-700 dark:text-zinc-300">{h.reason}</p>}
-                      {h.note && <p className="text-sm text-zinc-600 dark:text-zinc-400">{h.note}</p>}
+                      {e.kind === "status" ? (
+                        <>
+                          <p className="text-sm">
+                            {STATUS_LABELS[e.from as Status] ?? "Added"} →{" "}
+                            <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${STATUS_COLORS[e.to as Status]}`}>
+                              {STATUS_LABELS[e.to as Status]}
+                            </span>
+                          </p>
+                          {e.reason && <p className="text-sm text-zinc-700 dark:text-zinc-300">{e.reason}</p>}
+                          {e.note && <p className="text-sm text-zinc-600 dark:text-zinc-400">{e.note}</p>}
+                        </>
+                      ) : (
+                        <p className="whitespace-pre-wrap rounded-md bg-amber-50 px-2 py-1 text-sm dark:bg-amber-950/40">{e.body}</p>
+                      )}
                     </li>
                   ))}
                 </ol>
               ) : (
-                <p className="text-sm text-zinc-500">No status changes yet.</p>
+                <p className="text-sm text-zinc-500">No status changes or notes yet.</p>
               )}
             </section>
           )}
@@ -233,7 +269,7 @@ export default async function JobPage({ searchParams }: { searchParams: Promise<
           </section>
           <section className="rounded-xl border border-zinc-200 p-4 dark:border-zinc-800">
             <h2 className="mb-2 text-sm font-semibold">Notes</h2>
-            <NotesForm jobId={job.id} notes={job.notes ?? ""} />
+            <NotesThread jobId={job.id} notes={notes} />
           </section>
         </aside>
       </div>

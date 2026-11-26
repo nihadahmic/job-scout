@@ -4,6 +4,7 @@ import { DraftPanel } from "@/components/DraftPanel";
 import { StatusForm } from "@/components/JobActions";
 import { Nav } from "@/components/Nav";
 import { NotesThread, noteTime } from "@/components/NotesThread";
+import { PostingButton } from "@/components/PostingButton";
 import type { JobNote } from "@/app/job/note-actions";
 import { geminiConfigured } from "@/lib/drafting/gemini";
 import { suggestSalary } from "@/lib/drafting/salary";
@@ -143,10 +144,8 @@ export default async function JobPage({ searchParams }: { searchParams: Promise<
               <span className="text-zinc-500">{job.posted_at ? `Posted ${dateWithAge(job.posted_at)}` : `Found ${dateWithAge(job.first_seen_at)}`}</span>
             </div>
           </div>
-          <div className="flex gap-2">
-            <a href={job.url} target="_blank" rel="noopener noreferrer" className="btn">
-              Open posting ↗
-            </a>
+          <div className="flex items-start gap-2">
+            <PostingButton jobId={job.id} url={job.url} />
             {job.apply_url && job.apply_url !== job.url && (
               <a href={job.apply_url} target="_blank" rel="noopener noreferrer" className="btn-ghost border border-zinc-300 dark:border-zinc-700">
                 Apply page ↗

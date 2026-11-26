@@ -1,4 +1,5 @@
 import { Nav } from "@/components/Nav";
+import { RunControl } from "@/components/RunControl";
 import { SOURCE_LABELS } from "@/lib/labels";
 import { createClient } from "@/lib/supabase/server";
 
@@ -33,6 +34,7 @@ export default async function RunsPage() {
   return (
     <main className="mx-auto max-w-6xl px-4 py-6">
       <Nav active="/runs" />
+      <RunControl />
       <p className="mb-4 text-sm text-zinc-500">
         One row per collector run (daily at 07:30 UTC). Kept = passed every prefilter rule. Expand a run for the
         per-source counts and why jobs were dropped.

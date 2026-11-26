@@ -25,11 +25,13 @@ export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 50;
 const SORTS = {
-  fit: { column: "fit", label: "Best fit" },
-  posted: { column: "posted_at", label: "Newest posted" },
-  found: { column: "first_seen_at", label: "Newest found" },
-  salary: { column: "salary_max_eur_month", label: "Highest salary" },
-  company: { column: "company", label: "Company A–Z" },
+  fit: { column: "fit", label: "Best fit", ascending: false },
+  posted: { column: "posted_at", label: "Posted: newest first", ascending: false },
+  posted_old: { column: "posted_at", label: "Posted: oldest first", ascending: true },
+  found: { column: "first_seen_at", label: "Found: newest first", ascending: false },
+  found_old: { column: "first_seen_at", label: "Found: oldest first", ascending: true },
+  salary: { column: "salary_max_eur_month", label: "Highest salary", ascending: false },
+  company: { column: "company", label: "Company A–Z", ascending: true },
 } as const;
 const VIEWS = {
   todo: "To apply",
@@ -97,8 +99,8 @@ export default async function BacklogPage({ searchParams }: { searchParams: Prom
   if (q) query = query.textSearch("search", q, { type: "websearch", config: "english" });
   if (sortKey === "fit") query = query.order("tier", { ascending: true, nullsFirst: false });
   query = query
-    .order(sort.column, { ascending: sortKey === "company", nullsFirst: false })
-    .order("first_seen_at", { ascending: false })
+    .order(sort.column, { ascending: sort.ascending, nullsFirst: false })
+    .order("first_seen_at", { ascending: sort.ascending && sortKey !== "company" })
     .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
   const [{ data: jobs, count, error }, { data: owner }, { data: profileRow }] = await Promise.all([

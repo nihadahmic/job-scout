@@ -1,11 +1,15 @@
 import Link from "next/link";
+import { AutoSubmitForm } from "@/components/AutoSubmitForm";
 import { Nav } from "@/components/Nav";
 import { StatusSelect } from "@/components/StatusSelect";
 import {
   ACTIVE_STATUSES,
   CATEGORY_LABELS,
+  CATEGORY_STYLES,
   CLOSED_STATUSES,
+  DEFAULT_CATEGORY_STYLE,
   LOCATION_MATCH_LABELS,
+  LOCATION_TAG,
   SOURCE_LABELS,
   STATUS_LABELS,
   daysAgo,
@@ -18,11 +22,17 @@ export const dynamic = "force-dynamic";
 
 const PAGE_SIZE = 50;
 const SORTS = {
-  posted: { column: "posted_at", label: "Date posted" },
-  found: { column: "first_seen_at", label: "Date found" },
-  salary: { column: "salary_max_eur_month", label: "Salary" },
-  company: { column: "company", label: "Company" },
+  posted: { column: "posted_at", label: "Newest posted" },
+  found: { column: "first_seen_at", label: "Newest found" },
+  salary: { column: "salary_max_eur_month", label: "Highest salary" },
+  company: { column: "company", label: "Company A–Z" },
 } as const;
+const VIEWS = { active: "Active", closed: "Closed", all: "All" } as const;
+const POSTED = { "": "Any time", "3": "3 days", "7": "7 days", "14": "14 days", "30": "30 days" } as const;
+const SALARY_STEPS = [3000, 4000, 5000, 6000, 8000];
+
+// Server-only setting: highlights salaries at or above it. Never sent to the browser.
+const SALARY_FLOOR = Number(process.env.SALARY_FLOOR_EUR_MONTH) || null;
 
 type Params = Record<string, string | string[] | undefined>;
 
@@ -37,13 +47,13 @@ function one(value: string | string[] | undefined): string {
 
 export default async function BacklogPage({ searchParams }: { searchParams: Promise<Params> }) {
   const params = await searchParams;
-  const view = one(params.view) || "active"; // active | closed | all
+  const view = (one(params.view) || "active") as keyof typeof VIEWS;
   const statuses = list(params.status);
   const categories = list(params.category);
   const sources = list(params.source);
   const matches = list(params.match);
-  const posted = one(params.posted); // days
-  const minSalary = one(params.salary); // EUR/month
+  const posted = one(params.posted);
+  const minSalary = one(params.salary);
   const withSalary = one(params.has_salary) === "1";
   const showDropped = one(params.dropped) === "1";
   const q = one(params.q).trim();
@@ -55,10 +65,9 @@ export default async function BacklogPage({ searchParams }: { searchParams: Prom
   let query = supabase
     .from("jobs")
     .select(
-      "id, title, company, category, location_text, location_match, salary_text, salary_min_eur_month, salary_max_eur_month, posted_at, first_seen_at, source, status, url, dropped_reason",
+      "id, title, company, category, location_text, location_match, salary_text, salary_min_eur_month, salary_max_eur_month, posted_at, first_seen_at, source, status, dropped_reason",
       { count: "exact" },
     );
-
   if (statuses.length) query = query.in("status", statuses);
   else if (view === "active") query = query.in("status", [...ACTIVE_STATUSES]);
   else if (view === "closed") query = query.in("status", [...CLOSED_STATUSES]);
@@ -70,18 +79,12 @@ export default async function BacklogPage({ searchParams }: { searchParams: Prom
   if (minSalary) query = query.gte("salary_max_eur_month", Number(minSalary));
   else if (withSalary) query = query.not("salary_max_eur_month", "is", null);
   if (q) query = query.textSearch("search", q, { type: "websearch", config: "english" });
-
-  const ascending = sortKey === "company";
   query = query
-    .order(sort.column, { ascending, nullsFirst: false })
+    .order(sort.column, { ascending: sortKey === "company", nullsFirst: false })
     .order("first_seen_at", { ascending: false })
     .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
-  const [{ data: jobs, count, error }, { data: owner }] = await Promise.all([
-    query,
-    supabase.rpc("is_owner"),
-  ]);
-
+  const [{ data: jobs, count, error }, { data: owner }] = await Promise.all([query, supabase.rpc("is_owner")]);
   const total = count ?? 0;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const pageHref = (n: number) => {
@@ -90,14 +93,13 @@ export default async function BacklogPage({ searchParams }: { searchParams: Prom
     sp.set("page", String(n));
     return `/?${sp.toString()}`;
   };
+  const anyFilter =
+    statuses.length + categories.length + sources.length + matches.length > 0 ||
+    !!posted || !!minSalary || withSalary || showDropped || !!q || view !== "active";
 
   return (
-    <main className="mx-auto max-w-7xl px-4 py-6">
+    <main className="mx-auto max-w-6xl px-4 py-6">
       <Nav active="/" />
-      <p className="mb-4 text-sm text-zinc-500">
-        {total} {total === 1 ? "job" : "jobs"}
-        {view !== "all" && !statuses.length ? ` · ${view}` : ""}
-      </p>
 
       {owner === false && (
         <p className="mb-4 rounded-md bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-200">
@@ -105,141 +107,163 @@ export default async function BacklogPage({ searchParams }: { searchParams: Prom
         </p>
       )}
       {error && (
-        <p className="mb-4 rounded-md bg-rose-50 p-3 text-sm text-rose-800 dark:bg-rose-950 dark:text-rose-200">
-          {error.message}
-        </p>
+        <p className="mb-4 rounded-md bg-rose-50 p-3 text-sm text-rose-800 dark:bg-rose-950 dark:text-rose-200">{error.message}</p>
       )}
 
-      <form className="mb-5 grid grid-cols-2 gap-3 rounded-lg border border-zinc-200 p-3 text-sm md:grid-cols-4 lg:grid-cols-6 dark:border-zinc-800">
-        <label className="col-span-2 flex flex-col gap-1 lg:col-span-2">
-          <span className="text-xs text-zinc-500">Search</span>
-          <input name="q" defaultValue={q} placeholder="title, company, description" className="field" />
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-xs text-zinc-500">View</span>
-          <select name="view" defaultValue={view} className="field">
-            <option value="active">Active</option>
-            <option value="closed">Closed</option>
-            <option value="all">All</option>
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-xs text-zinc-500">Posted</span>
-          <select name="posted" defaultValue={posted} className="field">
-            <option value="">Any time</option>
-            <option value="3">Last 3 days</option>
-            <option value="7">Last 7 days</option>
-            <option value="14">Last 14 days</option>
-            <option value="30">Last 30 days</option>
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-xs text-zinc-500">Min salary (≈ EUR/month)</span>
-          <select name="salary" defaultValue={minSalary} className="field">
-            <option value="">Any</option>
-            {[3000, 4000, 4800, 6000, 8000].map((v) => (
-              <option key={v} value={v}>
-                {formatEur(v)}+
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="flex flex-col gap-1">
-          <span className="text-xs text-zinc-500">Sort by</span>
-          <select name="sort" defaultValue={sortKey} className="field">
+      <AutoSubmitForm className="mb-4 flex flex-col gap-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <input
+            type="search"
+            name="q"
+            defaultValue={q}
+            placeholder="Search title, company or description, then press Enter"
+            className="field min-w-0 flex-1 py-2"
+          />
+          <Segment name="view" options={VIEWS} value={view} />
+          <select name="sort" defaultValue={sortKey} aria-label="Sort" className="field py-2">
             {Object.entries(SORTS).map(([k, s]) => (
               <option key={k} value={k}>
                 {s.label}
               </option>
             ))}
           </select>
-        </label>
-
-        <Checks name="category" title="Category" options={CATEGORY_LABELS} selected={categories} />
-        <Checks name="match" title="Location" options={LOCATION_MATCH_LABELS} selected={matches} />
-        <Checks name="status" title="Status" options={STATUS_LABELS} selected={statuses} />
-        <Checks name="source" title="Source" options={SOURCE_LABELS} selected={sources} />
-
-        <div className="col-span-2 flex flex-wrap items-end gap-4 md:col-span-4 lg:col-span-6">
-          <label className="flex items-center gap-2">
-            <input type="checkbox" name="has_salary" value="1" defaultChecked={withSalary} />
-            Only with salary
-          </label>
-          <label className="flex items-center gap-2">
-            <input type="checkbox" name="dropped" value="1" defaultChecked={showDropped} />
-            Include prefilter drops
-          </label>
-          <div className="ml-auto flex gap-2">
-            <Link href="/" className="btn-ghost">
-              Reset
-            </Link>
-            <button className="btn">Apply</button>
-          </div>
         </div>
-      </form>
 
-      <div className="overflow-x-auto rounded-lg border border-zinc-200 dark:border-zinc-800">
-        <table className="w-full min-w-[860px] text-sm">
-          <thead className="bg-zinc-50 text-left text-xs uppercase tracking-wide text-zinc-500 dark:bg-zinc-900">
-            <tr>
-              <th className="px-3 py-2 font-medium">Role</th>
-              <th className="px-3 py-2 font-medium">Category</th>
-              <th className="px-3 py-2 font-medium">Location</th>
-              <th className="px-3 py-2 font-medium">Salary</th>
-              <th className="px-3 py-2 font-medium">Posted</th>
-              <th className="px-3 py-2 font-medium">Source</th>
-              <th className="px-3 py-2 font-medium">Status</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
-            {(jobs ?? []).map((job) => (
-              <tr key={job.id} className={job.dropped_reason ? "opacity-50" : ""}>
-                <td className="px-3 py-2">
+        <ChipRow label="Category">
+          {Object.entries(CATEGORY_LABELS).map(([value, label]) => (
+            <Chip key={value} name="category" value={value} checked={categories.includes(value)} on={(CATEGORY_STYLES[value] ?? DEFAULT_CATEGORY_STYLE).tag}>
+              {label}
+            </Chip>
+          ))}
+        </ChipRow>
+        <ChipRow label="Location">
+          {Object.entries(LOCATION_MATCH_LABELS).map(([value, label]) => (
+            <Chip key={value} name="match" value={value} checked={matches.includes(value)} on={LOCATION_TAG}>
+              {label}
+            </Chip>
+          ))}
+        </ChipRow>
+        <ChipRow label="Posted">
+          {Object.entries(POSTED).map(([value, label]) => (
+            <Chip key={value || "any"} type="radio" name="posted" value={value} checked={posted === value}>
+              {label}
+            </Chip>
+          ))}
+        </ChipRow>
+        <ChipRow label="Salary">
+          <Chip type="radio" name="salary" value="" checked={!minSalary}>
+            Any
+          </Chip>
+          {SALARY_STEPS.map((v) => (
+            <Chip key={v} type="radio" name="salary" value={String(v)} checked={minSalary === String(v)} on="bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+              {formatEur(v)}+ /mo
+            </Chip>
+          ))}
+          <Chip name="has_salary" value="1" checked={withSalary}>
+            Only with salary
+          </Chip>
+        </ChipRow>
+
+        <details className="text-sm" open={statuses.length + sources.length > 0 || showDropped}>
+          <summary className="cursor-pointer text-xs text-zinc-500">
+            More filters{statuses.length + sources.length > 0 ? ` (${statuses.length + sources.length})` : ""}
+          </summary>
+          <div className="mt-2 flex flex-col gap-3">
+            <ChipRow label="Status">
+              {Object.entries(STATUS_LABELS).map(([value, label]) => (
+                <Chip key={value} name="status" value={value} checked={statuses.includes(value)}>
+                  {label}
+                </Chip>
+              ))}
+            </ChipRow>
+            <ChipRow label="Source">
+              {Object.entries(SOURCE_LABELS).map(([value, label]) => (
+                <Chip key={value} name="source" value={value} checked={sources.includes(value)}>
+                  {label}
+                </Chip>
+              ))}
+            </ChipRow>
+            <ChipRow label="Other">
+              <Chip name="dropped" value="1" checked={showDropped}>
+                Include prefilter drops
+              </Chip>
+            </ChipRow>
+          </div>
+        </details>
+        <noscript>
+          <button className="btn self-start">Apply</button>
+        </noscript>
+      </AutoSubmitForm>
+
+      <div className="mb-2 flex items-baseline justify-between text-sm">
+        <p className="text-zinc-500">
+          <span className="font-medium text-zinc-900 dark:text-zinc-100">{total}</span> {total === 1 ? "job" : "jobs"}
+          {sortKey === "posted" ? ", newest first" : ""}
+        </p>
+        {anyFilter && (
+          <Link href="/" className="text-xs text-zinc-500 hover:underline">
+            Clear filters
+          </Link>
+        )}
+      </div>
+
+      <ul className="flex flex-col gap-1.5">
+        {(jobs ?? []).map((job) => {
+          const style = CATEGORY_STYLES[job.category ?? ""] ?? DEFAULT_CATEGORY_STYLE;
+          const isNew = Date.now() - new Date(job.first_seen_at).getTime() < 86_400_000;
+          const aboveFloor = SALARY_FLOOR != null && (job.salary_max_eur_month ?? 0) >= SALARY_FLOOR;
+          return (
+            <li
+              key={job.id}
+              className={`flex flex-col gap-2 rounded-md border border-l-4 border-zinc-200 bg-white p-3 sm:flex-row sm:items-center sm:gap-4 dark:border-zinc-800 dark:bg-zinc-950 ${style.edge} ${job.dropped_reason ? "opacity-60" : ""}`}
+            >
+              <div className="flex min-w-0 flex-1 items-center gap-3">
+                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg text-sm font-semibold ${style.tag}`}>
+                  {job.company.trim().charAt(0).toUpperCase() || "?"}
+                </span>
+                <div className="min-w-0">
                   <Link href={`/job?id=${encodeURIComponent(job.id)}`} className="font-medium hover:underline">
                     {job.title}
                   </Link>
-                  <div className="text-xs text-zinc-500">
-                    {job.company}
-                    {job.dropped_reason && ` · dropped: ${job.dropped_reason}`}
-                  </div>
-                </td>
-                <td className="px-3 py-2 text-zinc-600 dark:text-zinc-400">
-                  {CATEGORY_LABELS[job.category ?? ""] ?? ""}
-                </td>
-                <td className="max-w-[220px] px-3 py-2">
-                  <div className="truncate" title={job.location_text ?? ""}>
-                    {job.location_text}
-                  </div>
-                  <div className="text-xs text-zinc-500">{LOCATION_MATCH_LABELS[job.location_match ?? ""] ?? ""}</div>
-                </td>
-                <td className="px-3 py-2 whitespace-nowrap">
-                  {job.salary_max_eur_month ? (
-                    <span title={job.salary_text ?? ""}>
-                      {formatEur(job.salary_min_eur_month)}–{formatEur(job.salary_max_eur_month)}
+                  {isNew && (
+                    <span className="ml-2 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[11px] font-medium text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300">
+                      New today
                     </span>
-                  ) : (
-                    <span className="text-zinc-400">{job.salary_text ? "see post" : ""}</span>
                   )}
-                </td>
-                <td className="px-3 py-2 whitespace-nowrap text-zinc-600 dark:text-zinc-400">
+                  <p className="truncate text-sm text-zinc-500">
+                    {job.company}
+                    {job.location_text ? ` · ${job.location_text}` : ""}
+                    {job.dropped_reason ? ` · dropped: ${job.dropped_reason}` : ""}
+                  </p>
+                </div>
+              </div>
+              <div className="flex flex-wrap items-center gap-1.5 text-xs sm:justify-end">
+                {job.category && <span className={`rounded-full px-2 py-0.5 ${style.tag}`}>{CATEGORY_LABELS[job.category]}</span>}
+                {job.location_match && (
+                  <span className={`rounded-full px-2 py-0.5 ${LOCATION_TAG}`}>{LOCATION_MATCH_LABELS[job.location_match]}</span>
+                )}
+                {job.salary_max_eur_month ? (
+                  <span
+                    title={job.salary_text ?? ""}
+                    className={`rounded-full px-2 py-0.5 tabular-nums ${aboveFloor ? "bg-emerald-100 font-medium text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300" : "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300"}`}
+                  >
+                    {formatEur(job.salary_min_eur_month)}–{formatEur(job.salary_max_eur_month)}
+                  </span>
+                ) : null}
+                <span className="text-zinc-500" title={SOURCE_LABELS[job.source] ?? job.source}>
                   {daysAgo(job.posted_at ?? job.first_seen_at)}
-                </td>
-                <td className="px-3 py-2 text-zinc-600 dark:text-zinc-400">{SOURCE_LABELS[job.source] ?? job.source}</td>
-                <td className="px-3 py-2">
-                  <StatusSelect jobId={job.id} status={job.status as Status} />
-                </td>
-              </tr>
-            ))}
-            {!jobs?.length && (
-              <tr>
-                <td colSpan={7} className="px-3 py-10 text-center text-zinc-500">
-                  No jobs match these filters.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
-      </div>
+                </span>
+                <StatusSelect jobId={job.id} status={job.status as Status} />
+              </div>
+            </li>
+          );
+        })}
+        {!jobs?.length && (
+          <li className="rounded-md border border-dashed border-zinc-300 p-10 text-center text-sm text-zinc-500 dark:border-zinc-700">
+            No jobs match these filters.
+          </li>
+        )}
+      </ul>
 
       {pages > 1 && (
         <nav className="mt-4 flex items-center justify-between text-sm">
@@ -254,31 +278,56 @@ export default async function BacklogPage({ searchParams }: { searchParams: Prom
   );
 }
 
-function Checks({
+function ChipRow({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-center gap-1.5">
+      <span className="w-16 shrink-0 text-xs text-zinc-500">{label}</span>
+      {children}
+    </div>
+  );
+}
+
+function Chip({
   name,
-  title,
-  options,
-  selected,
+  value,
+  checked,
+  children,
+  type = "checkbox",
+  on = "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900",
 }: {
   name: string;
-  title: string;
-  options: Record<string, string>;
-  selected: string[];
+  value: string;
+  checked: boolean;
+  children: React.ReactNode;
+  type?: "checkbox" | "radio";
+  on?: string;
 }) {
   return (
-    <details className="col-span-1 lg:col-span-1" open={selected.length > 0}>
-      <summary className="cursor-pointer text-xs text-zinc-500">
-        {title}
-        {selected.length > 0 && ` (${selected.length})`}
-      </summary>
-      <div className="mt-2 flex max-h-48 flex-col gap-1 overflow-y-auto">
-        {Object.entries(options).map(([value, label]) => (
-          <label key={value} className="flex items-center gap-2">
-            <input type="checkbox" name={name} value={value} defaultChecked={selected.includes(value)} />
-            {label}
-          </label>
-        ))}
-      </div>
-    </details>
+    <label
+      className={`cursor-pointer select-none rounded-full border px-2.5 py-1 text-xs transition-colors ${
+        checked
+          ? `${on} border-transparent font-medium`
+          : "border-zinc-300 text-zinc-700 hover:bg-zinc-100 dark:border-zinc-700 dark:text-zinc-300 dark:hover:bg-zinc-800"
+      }`}
+    >
+      <input type={type} name={name} value={value} defaultChecked={checked} className="sr-only" />
+      {children}
+    </label>
+  );
+}
+
+function Segment({ name, options, value }: { name: string; options: Record<string, string>; value: string }) {
+  return (
+    <div className="flex rounded-md border border-zinc-300 p-0.5 text-sm dark:border-zinc-700">
+      {Object.entries(options).map(([k, label]) => (
+        <label
+          key={k}
+          className={`cursor-pointer rounded px-2.5 py-1 ${k === value ? "bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900" : "text-zinc-600 dark:text-zinc-400"}`}
+        >
+          <input type="radio" name={name} value={k} defaultChecked={k === value} className="sr-only" />
+          {label}
+        </label>
+      ))}
+    </div>
   );
 }

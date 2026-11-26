@@ -25,7 +25,7 @@ export default async function JobPage({ searchParams }: { searchParams: Promise<
     supabase.from("jobs").select("*").eq("id", id).maybeSingle(),
     supabase
       .from("status_history")
-      .select("from_status, to_status, note, changed_at")
+      .select("from_status, to_status, note, reason, changed_at")
       .eq("job_id", id)
       .order("changed_at", { ascending: false }),
   ]);
@@ -46,6 +46,7 @@ export default async function JobPage({ searchParams }: { searchParams: Promise<
     ["Found", formatDate(job.first_seen_at)],
     ["Source", SOURCE_LABELS[job.source] ?? job.source],
   ];
+  if (job.close_reason) facts.push(["Closed because", job.close_reason]);
   if (job.dropped_reason) facts.push(["Prefilter", `dropped: ${job.dropped_reason}`]);
   if (job.tier != null) facts.push(["Tier / fit", `${job.tier} / ${job.fit ?? "—"}`]);
 
@@ -95,7 +96,7 @@ export default async function JobPage({ searchParams }: { searchParams: Promise<
 
           <section>
             <h2 className="mb-2 text-sm font-semibold">Status</h2>
-            <StatusForm jobId={job.id} status={status} />
+            <StatusForm jobId={job.id} status={status} closeReason={job.close_reason} />
           </section>
 
           <section>
@@ -111,6 +112,7 @@ export default async function JobPage({ searchParams }: { searchParams: Promise<
                   <li key={i}>
                     <span className="text-zinc-500">{formatDate(h.changed_at)}</span>{" "}
                     {STATUS_LABELS[h.from_status as Status] ?? "—"} → {STATUS_LABELS[h.to_status as Status]}
+                    {h.reason && <div className="text-zinc-700 dark:text-zinc-300">{h.reason}</div>}
                     {h.note && <div className="text-zinc-600 dark:text-zinc-400">{h.note}</div>}
                   </li>
                 ))}

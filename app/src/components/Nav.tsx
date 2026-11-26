@@ -3,11 +3,12 @@ import { signOut } from "@/app/actions";
 
 const LINKS = [
   { href: "/", label: "Backlog" },
+  { href: "/pipeline", label: "Pipeline" },
   { href: "/insights", label: "Insights" },
   { href: "/runs", label: "Runs" },
 ];
 
-export function Nav({ active }: { active: "/" | "/insights" | "/runs" | "" }) {
+export function Nav({ active }: { active: "/" | "/pipeline" | "/insights" | "/runs" | "" }) {
   return (
     <nav className="mb-5 flex flex-wrap items-center gap-1 border-b border-zinc-200 pb-3 text-sm dark:border-zinc-800">
       <span className="mr-3 font-semibold">Job Scout</span>

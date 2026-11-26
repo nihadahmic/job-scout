@@ -97,3 +97,49 @@ export function daysAgo(value: string | null): string {
   if (days === 1) return "1 day ago";
   return `${days} days ago`;
 }
+
+/** Why a job left the pipeline. `status` is what change_status() records; `by` colours the tag. */
+export const CLOSE_REASONS = [
+  { label: "Rejected after applying", status: "not_moving_forward", by: "company" },
+  { label: "Rejected after interview", status: "not_moving_forward", by: "company" },
+  { label: "No response", status: "not_moving_forward", by: "company" },
+  { label: "Role filled or closed", status: "not_moving_forward", by: "company" },
+  { label: "Withdrew: not a fit", status: "withdrawn", by: "me" },
+  { label: "Withdrew: salary", status: "withdrawn", by: "me" },
+  { label: "Declined offer", status: "declined", by: "me" },
+] as const satisfies readonly { label: string; status: Status; by: "company" | "me" }[];
+
+export function closeReasonTone(reason: string | null, status: Status): "company" | "me" {
+  const known = CLOSE_REASONS.find((r) => r.label === reason);
+  if (known) return known.by;
+  return status === "not_moving_forward" ? "company" : "me";
+}
+
+/** One colour family per category, used for the row edge, initial and tag. */
+export const CATEGORY_STYLES: Record<string, { edge: string; tag: string }> = {
+  product_manager: {
+    edge: "border-l-violet-500",
+    tag: "bg-violet-100 text-violet-800 dark:bg-violet-950 dark:text-violet-300",
+  },
+  product_owner: {
+    edge: "border-l-sky-500",
+    tag: "bg-sky-100 text-sky-800 dark:bg-sky-950 dark:text-sky-300",
+  },
+  business_analyst: {
+    edge: "border-l-fuchsia-500",
+    tag: "bg-fuchsia-100 text-fuchsia-800 dark:bg-fuchsia-950 dark:text-fuchsia-300",
+  },
+  project_manager: {
+    edge: "border-l-orange-500",
+    tag: "bg-orange-100 text-orange-800 dark:bg-orange-950 dark:text-orange-300",
+  },
+  implementation: {
+    edge: "border-l-emerald-500",
+    tag: "bg-emerald-100 text-emerald-800 dark:bg-emerald-950 dark:text-emerald-300",
+  },
+};
+export const DEFAULT_CATEGORY_STYLE = {
+  edge: "border-l-zinc-300 dark:border-l-zinc-700",
+  tag: "bg-zinc-100 text-zinc-700 dark:bg-zinc-800 dark:text-zinc-300",
+};
+export const LOCATION_TAG = "bg-teal-50 text-teal-800 dark:bg-teal-950 dark:text-teal-300";

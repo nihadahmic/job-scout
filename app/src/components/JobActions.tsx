@@ -3,10 +3,21 @@
 import { useState, useTransition } from "react";
 import { changeStatus, saveNotes } from "@/app/actions";
 import { StatusOptions } from "@/components/StatusSelect";
-import type { Status } from "@/lib/labels";
+import { CLOSE_REASONS, type Status } from "@/lib/labels";
 
-export function StatusForm({ jobId, status }: { jobId: string; status: Status }) {
+const CLOSING: Status[] = ["withdrawn", "not_moving_forward", "declined"];
+
+export function StatusForm({
+  jobId,
+  status,
+  closeReason,
+}: {
+  jobId: string;
+  status: Status;
+  closeReason: string | null;
+}) {
   const [next, setNext] = useState<Status>(status);
+  const [reason, setReason] = useState(closeReason ?? "");
   const [note, setNote] = useState("");
   const [day, setDay] = useState("");
   const [pending, startTransition] = useTransition();
@@ -20,7 +31,13 @@ export function StatusForm({ jobId, status }: { jobId: string; status: Status })
         e.preventDefault();
         setMessage("");
         startTransition(async () => {
-          const result = await changeStatus(jobId, next, note, day || undefined);
+          const result = await changeStatus(
+            jobId,
+            next,
+            note,
+            day || undefined,
+            CLOSING.includes(next) ? reason || undefined : undefined,
+          );
           if (result.ok) {
             setNote("");
             setDay("");
@@ -39,6 +56,24 @@ export function StatusForm({ jobId, status }: { jobId: string; status: Status })
       >
         <StatusOptions />
       </select>
+      {CLOSING.includes(next) && (
+        <div className="flex flex-wrap gap-1.5">
+          {CLOSE_REASONS.filter((r) => r.status === next).map((r) => (
+            <button
+              type="button"
+              key={r.label}
+              onClick={() => setReason(r.label)}
+              className={`rounded-full border px-2.5 py-1 text-xs ${
+                reason === r.label
+                  ? "border-transparent bg-zinc-900 text-white dark:bg-zinc-100 dark:text-zinc-900"
+                  : "border-zinc-300 hover:bg-zinc-100 dark:border-zinc-700 dark:hover:bg-zinc-800"
+              }`}
+            >
+              {r.label}
+            </button>
+          ))}
+        </div>
+      )}
       <input
         value={note}
         onChange={(e) => setNote(e.target.value)}
@@ -57,7 +92,10 @@ export function StatusForm({ jobId, status }: { jobId: string; status: Status })
         <span>{day ? "" : "(today if empty)"}</span>
       </label>
       <div className="flex items-center gap-3">
-        <button className="btn" disabled={pending || (next === status && !note.trim())}>
+        <button
+          className="btn"
+          disabled={pending || (next === status && !note.trim() && reason === (closeReason ?? ""))}
+        >
           {pending ? "Saving…" : "Update status"}
         </button>
         {message && <span className="text-xs text-zinc-500">{message}</span>}

@@ -13,6 +13,7 @@ export async function changeStatus(
   status: string,
   note?: string,
   day?: string,
+  reason?: string,
 ): Promise<ActionResult> {
   if (!isStatus(status)) return { ok: false, error: "Unknown status" };
   if (day && !/^\d{4}-\d{2}-\d{2}$/.test(day)) return { ok: false, error: "Invalid date" };
@@ -23,11 +24,13 @@ export async function changeStatus(
     p_note: note ?? null,
     // Noon in Sarajevo, so the day is right in either winter or summer time.
     p_changed_at: day ? `${day}T12:00:00+01:00` : null,
+    p_reason: reason ?? null,
   });
   if (error) return { ok: false, error: error.message };
   revalidatePath("/");
   revalidatePath("/job");
   revalidatePath("/insights");
+  revalidatePath("/pipeline");
   return { ok: true };
 }
 

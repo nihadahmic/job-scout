@@ -36,13 +36,12 @@ export default async function InsightsPage({
   const params = await searchParams;
   const range = (params.range && params.range in RANGES ? params.range : "all") as keyof typeof RANGES;
   const supabase = await createClient();
-  const [{ data, error }, { data: inProgress }] = await Promise.all([
+  const [{ data, error }] = await Promise.all([
     supabase
       .from("applications")
       .select("id, company, title, source, category, status, url, applied_at, applied_day, replied_at, interviewed, offered, last_change_at")
       .order("applied_at", { ascending: false })
       .limit(5000),
-    supabase.from("jobs").select("id, company, title").eq("status", "in_progress").limit(200),
   ]);
   const apps = (data ?? []) as App[];
   const now = today();
@@ -242,31 +241,14 @@ export default async function InsightsPage({
         </Card>
       </div>
 
-      <Card
-        className="mt-4"
-        title="Pipeline"
-        right={
-          waiting ? (
-            <Link href="/?status=applied" className="text-xs text-amber-700 hover:underline dark:text-amber-400">
-              {waiting} applied {waiting === 1 ? "job has" : "jobs have"} had no reply for {FOLLOW_UP_DAYS}+ days
-            </Link>
-          ) : null
-        }
-      >
-        <div className="grid gap-3 md:grid-cols-4">
-          <Column title="In progress" items={(inProgress ?? []).map((j) => ({ id: j.id, company: j.company, title: j.title }))} />
-          <Column
-            title="Applied"
-            items={active("applied").map((a) => {
-              const days = daysBetween(a.last_change_at.slice(0, 10), now);
-              return { id: a.id, company: a.company, title: a.title, flag: days >= FOLLOW_UP_DAYS ? `${days} days, no reply` : undefined };
-            })}
-            more="/?status=applied"
-          />
-          <Column title="Interviewing" items={active("interviewing")} />
-          <Column title="Offer" items={active("offer")} />
-        </div>
-      </Card>
+      {waiting > 0 && (
+        <p className="mt-4 rounded-md bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-200">
+          {waiting} applied {waiting === 1 ? "job has" : "jobs have"} had no reply for {FOLLOW_UP_DAYS}+ days.{" "}
+          <Link href="/pipeline" className="underline">
+            Open the pipeline
+          </Link>
+        </p>
+      )}
 
       <p className="mt-6 text-xs text-zinc-500">
         Days and weeks are in Sarajevo time, weeks start on Monday. Applications imported from Notion use the Notion
@@ -336,43 +318,6 @@ function Breakdown({ rows }: { rows: [string, { n: number; r: number; i: number 
         ))}
       </tbody>
     </table>
-  );
-}
-
-function Column({
-  title,
-  items,
-  more,
-}: {
-  title: string;
-  items: { id: string; company: string; title: string; flag?: string }[];
-  more?: string;
-}) {
-  const shown = items.slice(0, 8);
-  return (
-    <div>
-      <p className="mb-2 text-xs text-zinc-500">
-        {title} · {items.length}
-      </p>
-      <div className="flex flex-col gap-1.5">
-        {shown.map((j) => (
-          <Link
-            key={j.id}
-            href={`/job?id=${encodeURIComponent(j.id)}`}
-            className="rounded-md border border-zinc-200 px-2 py-1.5 text-xs hover:bg-zinc-50 dark:border-zinc-800 dark:hover:bg-zinc-900"
-          >
-            <span className="font-medium">{j.company}</span>
-            <span className="block truncate text-zinc-500">{j.title}</span>
-            {j.flag && <span className="text-amber-700 dark:text-amber-400">{j.flag}</span>}
-          </Link>
-        ))}
-        {items.length > shown.length && (
-          <Link href={more ?? "/"} className="text-xs text-zinc-500 hover:underline">
-            {items.length - shown.length} more
-          </Link>
-        )}
-      </div>
-    </div>
   );
 }
 

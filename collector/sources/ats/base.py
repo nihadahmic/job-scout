@@ -62,7 +62,12 @@ class AtsSource:
                     RawJob(
                         self.name,
                         f"{company['slug']}/{job_id}",
-                        {"item": item, "company": company["name"], "slug": company["slug"]},
+                        {
+                            "item": item,
+                            # board_name: set when the board belongs to a parent or new brand
+                            "company": company.get("board_name") or company["name"],
+                            "slug": company["slug"],
+                        },
                     )
                 )
         return raws

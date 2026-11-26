@@ -49,6 +49,17 @@ def test_detect_ignores_asset_paths_and_picks_most_referenced():
     assert (d.ats, d.slug) == ("lever", "acme")
 
 
+@pytest.mark.parametrize(
+    "text",
+    [
+        '<script src="https://careers-analytics.recruitee.com/t.js">',  # tracking script
+        '<a href="https://apply.workable.com/j/ABC123">',  # job link, no account slug
+    ],
+)
+def test_not_a_board_slug(text):
+    assert detect_in(text) is None
+
+
 def test_no_ats():
     assert detect_in("<html>We use our own careers page.</html>") is None
 

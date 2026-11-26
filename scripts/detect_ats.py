@@ -66,6 +66,9 @@ PATTERNS: list[tuple[str, re.Pattern[str], str | None]] = [
 ]
 # Path segments and subdomains that are never a company's board slug.
 NOT_SLUGS = {
+    "j",
+    "careers-analytics",
+    "analytics",
     "www",
     "apply",
     "api",

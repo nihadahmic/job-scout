@@ -39,6 +39,13 @@ test("banned patterns are flagged", () => {
   for (const expected of ["dash", "not just", "rather than", "platitude"]) assert.match(problems, new RegExp(expected));
 });
 
+test("tricolons and two-sentence pivots are flagged", () => {
+  const base = letter(14);
+  assert.match(checkLetter(`${base} It comes down to discovery, measurement, and shipping.`).join(), /tricolon/);
+  assert.match(checkLetter(`${base} You are not trying to build a wedge. The wedge is already there.`).join(), /pivot/);
+  assert.doesNotMatch(checkLetter(`${base} I worked with product and design.`).join(), /tricolon/);
+});
+
 const prefs = { floor_eur_hour: 30, target_eur_hour: 50, employment_discount_pct: 20, hours_per_month: 160 };
 
 test("salary from floor and target when the posting has no range", () => {

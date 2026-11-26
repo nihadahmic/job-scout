@@ -13,6 +13,10 @@ const BANNED: [RegExp, string][] = [
   [/\b(passionate|thrilled|excited to apply|i am excited|dream job|perfect fit|great fit)\b/i, "Uses a platitude"],
   [/\b(synerg\w*|leverag\w*|cutting[- ]edge|fast[- ]paced|go[- ]getter|team player|results[- ]driven)\b/i, "Uses buzzwords"],
   [/\bI am writing to (express|apply)\b/i, "Opens with a stock line"],
+  // "X, Y, and Z": a list of three (tricolon), items of one to three words.
+  [/\b[\w'-]+(\s[\w'-]+){0,2},\s[\w'-]+(\s[\w'-]+){0,2},?\s(and|or)\s[\w'-]+/i, "Uses a list of three (tricolon)"],
+  // "You are not X. The Y is..." / "You don't win by X. You win by Y.": a pivot across two sentences.
+  [/\b(not|n't|never)\b[^.!?]{0,80}[.!?]\s+(but\s+)?(the|it|you|we|i|they|this)\b[^.!?]{0,40}\b(is|are|win|wins|do|does)\b/i, 'Uses a "not X. Y" pivot across sentences'],
 ];
 
 export function wordCount(text: string): number {

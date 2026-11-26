@@ -1,0 +1,96 @@
+[
+ {
+  "id": "aaa111",
+  "friendly_id": "ecb6f2d24d33-staff-product-manager-transactions-trust",
+  "name": "Senior Product Manager, Marketplace",
+  "url": "https://acme.breezy.hr/p/aaa111-senior-pm",
+  "published_date": "2026-11-05T15:00:28.304Z",
+  "type": {
+   "id": "fullTime",
+   "name": "Full-Time"
+  },
+  "location": {
+   "id": "3f6dcf6ca901",
+   "country": {
+    "name": "United States",
+    "id": "US"
+   },
+   "primary": true,
+   "is_remote": true,
+   "remote_details": {
+    "value": "remote",
+    "label": "Fully remote, no location restrictions"
+   },
+   "name": "United States"
+  },
+  "department": "Product",
+  "salary": "",
+  "company": {
+   "name": "Acme",
+   "friendly_id": "acme"
+  },
+  "locations": [
+   {
+    "id": "3f6dcf6ca901",
+    "country": {
+     "name": "United States",
+     "id": "US"
+    },
+    "primary": true,
+    "is_remote": true,
+    "remote_details": {
+     "value": "remote",
+     "label": "Fully remote, no location restrictions"
+    },
+    "name": "United States"
+   }
+  ]
+ },
+ {
+  "id": "bbb222",
+  "friendly_id": "ecb6f2d24d33-staff-product-manager-transactions-trust",
+  "name": "Product Manager",
+  "url": "https://acme.breezy.hr/p/bbb222-pm",
+  "published_date": "2026-11-05T15:00:28.304Z",
+  "type": {
+   "id": "fullTime",
+   "name": "Full-Time"
+  },
+  "location": {
+   "id": "3f6dcf6ca901",
+   "country": {
+    "name": "United States",
+    "id": "US"
+   },
+   "primary": true,
+   "is_remote": true,
+   "remote_details": {
+    "value": "remote",
+    "label": "Fully remote within country"
+   },
+   "name": "United States"
+  },
+  "department": "Product",
+  "salary": "",
+  "company": {
+   "name": "Acme",
+   "friendly_id": "acme"
+  },
+  "locations": [
+   {
+    "id": "3f6dcf6ca901",
+    "country": {
+     "name": "United States",
+     "id": "US"
+    },
+    "primary": true,
+    "is_remote": true,
+    "remote_details": {
+     "value": "remote",
+     "label": "Fully remote within country"
+    },
+    "name": "United States"
+   }
+  ]
+ }
+]

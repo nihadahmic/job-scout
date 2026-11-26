@@ -1,0 +1,74 @@
+{
+ "id": "1",
+ "name": "Business Analyst",
+ "uuid": "e36e5642-d476-475c-96bb-408470229d91",
+ "jobId": "c4c1b2a7-8b0f-46d9-a022-a17180714df9",
+ "jobAdId": "848d9899-062f-425a-bc40-68dd04da638b",
+ "defaultJobAd": false,
+ "refNumber": "REF32442O",
+ "company": {
+  "identifier": "acme",
+  "name": "Acme"
+ },
+ "location": {
+  "city": "Bucharest",
+  "region": "Bucharest",
+  "country": "ro",
+  "remote": false,
+  "hybrid": false,
+  "latitude": "44.4267674",
+  "longitude": "26.1025384",
+  "fullLocation": "Bucharest, Bucharest, Romania"
+ },
+ "releasedDate": "2026-11-26T10:28:28.080Z",
+ "postingUrl": "https://jobs.smartrecruiters.com/acme/1-business-analyst",
+ "applyUrl": "https://jobs.smartrecruiters.com/acme/1-business-analyst?oga=true",
+ "referralUrl": "https://jobs.smartrecruiters.com/external-referrals/company/Ubisoft2/publication/e36e5642-d476-475c-96bb-408470229d91?dcr_ci=Ubisoft2",
+ "jobAd": {
+  "sections": {
+   "companyDescription": {
+    "title": "companyDescription",
+    "text": "<p>Placeholder description.</p>"
+   },
+   "jobDescription": {
+    "title": "jobDescription",
+    "text": "<p>Placeholder description.</p>"
+   },
+   "qualifications": {
+    "title": "qualifications",
+    "text": "<p>Placeholder description.</p>"
+   },
+   "additionalInformation": {
+    "title": "additionalInformation",
+    "text": "<p>Placeholder description.</p>"
+   }
+  }
+ },
+ "active": true,
+ "visibility": "PUBLIC",
+ "industry": {
+  "id": "entertainment",
+  "label": "Entertainment"
+ },
+ "function": {
+  "id": "human_resources",
+  "label": "Human Resources"
+ },
+ "department": {
+  "id": 13847731,
+  "label": "Ubisoft"
+ },
+ "experienceLevel": {
+  "id": "associate",
+  "label": "Associate"
+ },
+ "typeOfEmployment": {
+  "id": "permanent",
+  "label": "Full-time"
+ },
+ "language": {
+  "code": "en-GB",
+  "label": "English (UK)",
+  "labelNative": "English (UK)"
+ }
+}

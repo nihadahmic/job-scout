@@ -5,13 +5,17 @@ import yaml
 
 from collector.run import collect
 from collector.sources.ats.ashby import Ashby
+from collector.sources.ats.breezy import Breezy
 from collector.sources.ats.greenhouse import Greenhouse
 from collector.sources.ats.lever import Lever
+from collector.sources.ats.personio import Personio
 from collector.sources.ats.recruitee import Recruitee
+from collector.sources.ats.smartrecruiters import SmartRecruiters
 from collector.sources.ats.teamtailor import Teamtailor
 from collector.sources.ats.workable import Workable
 from collector.store import Store
 
+SR = "https://api.smartrecruiters.com/v1/companies/acme/postings"
 ROUTES = {
     "https://boards-api.greenhouse.io/v1/boards/acme/jobs": "ats/greenhouse_acme.json",
     "https://api.lever.co/v0/postings/acme": "ats/lever_acme.json",
@@ -19,6 +23,11 @@ ROUTES = {
     "https://apply.workable.com/api/v1/widget/accounts/acme": "ats/workable_acme.json",
     "https://acme.recruitee.com/api/offers/": "ats/recruitee_acme.json",
     "https://acme.teamtailor.com/jobs.rss": "ats/teamtailor_acme.rss",
+    "https://acme.jobs.personio.de/xml": "ats/personio_acme.xml",
+    "https://acme.breezy.hr/json": "ats/breezy_acme.json",
+    # detail before list: FixtureClient matches the first prefix that fits
+    f"{SR}/1": "ats/smartrecruiters_acme_1.json",
+    f"{SR}?": "ats/smartrecruiters_acme_list.json",
 }
 
 
@@ -26,7 +35,17 @@ ROUTES = {
 def watchlist(tmp_path):
     companies = [
         {"name": "Acme", "website": "https://acme.test", "ats": ats, "slug": "acme"}
-        for ats in ("greenhouse", "lever", "ashby", "workable", "recruitee", "teamtailor")
+        for ats in (
+            "greenhouse",
+            "lever",
+            "ashby",
+            "workable",
+            "recruitee",
+            "teamtailor",
+            "personio",
+            "breezy",
+            "smartrecruiters",
+        )
     ]
     companies.append({"name": "Nobody", "website": "https://x.test", "ats": "unknown"})
     path = tmp_path / "companies.yaml"
@@ -89,6 +108,40 @@ def test_teamtailor(fixture_client, watchlist):
     assert jobs["Product Manager"].remote is False  # remoteStatus hybrid
 
 
+def test_personio(fixture_client, watchlist):
+    jobs = jobs_for(Personio, fixture_client, watchlist)
+    pm = jobs["Senior Product Manager (f/m/x)"]
+    assert pm.remote and pm.location_text == "EU Remote | Berlin"
+    assert pm.url == "https://acme.jobs.personio.de/job/111"
+    assert "About the role" in pm.description and "Placeholder item" in pm.description
+    assert jobs["Product Owner"].location_text == "Remote - Croatia (Zagreb), Remote"
+    assert jobs["Product Manager"].remote is False  # office "Munich"
+
+
+def test_breezy(fixture_client, watchlist):
+    jobs = jobs_for(Breezy, fixture_client, watchlist)
+    anywhere = jobs["Senior Product Manager, Marketplace"]
+    assert anywhere.remote and anywhere.location_text == "Anywhere (no location restrictions)"
+    assert jobs["Product Manager"].location_text == "Remote, United States"
+
+
+def test_smartrecruiters_fetches_details_only_for_remote_title_matches(
+    fixture_client, watchlist, prefilter
+):
+    client = fixture_client(ROUTES)
+    source = SmartRecruiters(
+        client, {"companies_file": str(watchlist), "_title_ok": prefilter.title_ok}
+    )
+    jobs = [source.normalize(r) for r in source.fetch()]
+    assert [j.title for j in jobs] == ["Business Analyst"]
+    detail_calls = [c for c in client.calls if "/postings/" in c]
+    assert detail_calls == ["https://api.smartrecruiters.com/v1/companies/acme/postings/1"]
+    ba = jobs[0]
+    assert ba.remote and ba.location_text == "Remote, Zagreb, Croatia"
+    assert ba.url == "https://jobs.smartrecruiters.com/acme/1-business-analyst"
+    assert "Placeholder description." in ba.description
+
+
 def test_teamtailor_custom_domain_url():
     source = Teamtailor(None, {})
     assert source.board_url("careers.acme.io", None) == "https://careers.acme.io/jobs.rss"
@@ -115,9 +168,14 @@ def test_missing_watchlist_is_reported(fixture_client, tmp_path, prefilter):
 
 
 def test_ats_jobs_go_through_prefilter(fixture_client, watchlist, tmp_path, prefilter):
-    config = {"ats": {"companies_file": str(watchlist)}} | {
-        name: {} for name in ("greenhouse", "lever", "ashby", "workable", "recruitee", "teamtailor")
-    }
+    config = (
+        {"ats": {"companies_file": str(watchlist)}}
+        | {
+            name: {}
+            for name in ("greenhouse", "lever", "ashby", "workable", "recruitee", "teamtailor")
+        }
+        | {name: {} for name in ("personio", "breezy", "smartrecruiters")}
+    )
     store = Store(tmp_path / "jobs.sqlite")
     stats = collect(config, store, fixture_client(ROUTES), prefilter)
 
@@ -130,3 +188,7 @@ def test_ats_jobs_go_through_prefilter(fixture_client, watchlist, tmp_path, pref
     assert stats["workable"].dropped["location:other_place"] == 1  # Remote, India
     assert stats["teamtailor"].dropped["location:other_place"] == 1  # Remote, Milano, Italy
     assert stats["recruitee"].new == 1  # Remote, Croatia
+    assert stats["personio"].dropped["location:eu_only"] == 1  # "EU Remote | Berlin"
+    assert stats["personio"].passed["authorization"] == 1  # Remote - Croatia
+    assert stats["breezy"].dropped["location:us_only"] == 1
+    assert stats["smartrecruiters"].passed["authorization"] == 1  # Remote, Zagreb, Croatia

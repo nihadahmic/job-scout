@@ -1,0 +1,148 @@
+{
+ "offset": 0,
+ "limit": 100,
+ "totalFound": 3,
+ "content": [
+  {
+   "id": "1",
+   "name": "Business Analyst",
+   "uuid": "e36e5642-d476-475c-96bb-408470229d91",
+   "jobAdId": "848d9899-062f-425a-bc40-68dd04da638b",
+   "defaultJobAd": false,
+   "refNumber": "REF32442O",
+   "company": {
+    "identifier": "acme",
+    "name": "Acme"
+   },
+   "releasedDate": "2026-11-26T10:28:28.080Z",
+   "location": {
+    "city": "Zagreb",
+    "country": "hr",
+    "remote": true,
+    "hybrid": false,
+    "fullLocation": "Zagreb, Croatia"
+   },
+   "industry": {
+    "id": "entertainment",
+    "label": "Entertainment"
+   },
+   "department": {
+    "id": "13847731",
+    "label": "Ubisoft"
+   },
+   "function": {
+    "id": "human_resources",
+    "label": "Human Resources"
+   },
+   "typeOfEmployment": {
+    "id": "permanent",
+    "label": "Full-time"
+   },
+   "experienceLevel": {
+    "id": "associate",
+    "label": "Associate"
+   },
+   "visibility": "PUBLIC",
+   "ref": "https://api.smartrecruiters.com/v1/companies/acme/postings/1",
+   "language": {
+    "code": "en-GB",
+    "label": "English (UK)",
+    "labelNative": "English (UK)"
+   }
+  },
+  {
+   "id": "2",
+   "name": "Business Analyst (Office)",
+   "uuid": "e36e5642-d476-475c-96bb-408470229d91",
+   "jobAdId": "848d9899-062f-425a-bc40-68dd04da638b",
+   "defaultJobAd": false,
+   "refNumber": "REF32442O",
+   "company": {
+    "identifier": "acme",
+    "name": "Acme"
+   },
+   "releasedDate": "2026-11-26T10:28:28.080Z",
+   "location": {
+    "city": "Zagreb",
+    "country": "hr",
+    "remote": false,
+    "hybrid": false,
+    "fullLocation": "Zagreb, Croatia"
+   },
+   "industry": {
+    "id": "entertainment",
+    "label": "Entertainment"
+   },
+   "department": {
+    "id": "13847731",
+    "label": "Ubisoft"
+   },
+   "function": {
+    "id": "human_resources",
+    "label": "Human Resources"
+   },
+   "typeOfEmployment": {
+    "id": "permanent",
+    "label": "Full-time"
+   },
+   "experienceLevel": {
+    "id": "associate",
+    "label": "Associate"
+   },
+   "visibility": "PUBLIC",
+   "ref": "https://api.smartrecruiters.com/v1/companies/acme/postings/2",
+   "language": {
+    "code": "en-GB",
+    "label": "English (UK)",
+    "labelNative": "English (UK)"
+   }
+  },
+  {
+   "id": "3",
+   "name": "Software Engineer",
+   "uuid": "e36e5642-d476-475c-96bb-408470229d91",
+   "jobAdId": "848d9899-062f-425a-bc40-68dd04da638b",
+   "defaultJobAd": false,
+   "refNumber": "REF32442O",
+   "company": {
+    "identifier": "acme",
+    "name": "Acme"
+   },
+   "releasedDate": "2026-11-26T10:28:28.080Z",
+   "location": {
+    "city": "Zagreb",
+    "country": "hr",
+    "remote": true,
+    "hybrid": false,
+    "fullLocation": "Zagreb, Croatia"
+   },
+   "industry": {
+    "id": "entertainment",
+    "label": "Entertainment"
+   },
+   "department": {
+    "id": "13847731",
+    "label": "Ubisoft"
+   },
+   "function": {
+    "id": "human_resources",
+    "label": "Human Resources"
+   },
+   "typeOfEmployment": {
+    "id": "permanent",
+    "label": "Full-time"
+   },
+   "experienceLevel": {
+    "id": "associate",
+    "label": "Associate"
+   },
+   "visibility": "PUBLIC",
+   "ref": "https://api.smartrecruiters.com/v1/companies/acme/postings/3",
+   "language": {
+    "code": "en-GB",
+    "label": "English (UK)",
+    "labelNative": "English (UK)"
+   }
+  }
+ ]
+}

@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<workzag-jobs>
+<position>
+    <id>111</id>
+    <subcompany>Acme GmbH</subcompany>
+    <office>EU Remote | Berlin</office>
+    <department>Product</department>
+    <name>Senior Product Manager (f/m/x)</name>
+    <jobDescriptions>
+        <jobDescription><name>About the role</name><value><![CDATA[<p>Placeholder description.</p>]]></value></jobDescription>
+        <jobDescription><name>Requirements</name><value><![CDATA[<ul><li>Placeholder item</li></ul>]]></value></jobDescription>
+    </jobDescriptions>
+    <employmentType>permanent</employmentType>
+    <seniority>experienced</seniority>
+    <createdAt>2026-10-12T13:05:07+00:00</createdAt>
+</position>
+<position>
+    <id>222</id>
+    <office>Remote - Croatia (Zagreb)</office>
+    <additionalOffices><office>Remote</office></additionalOffices>
+    <name>Product Owner</name>
+    <jobDescriptions><jobDescription><name>Intro</name><value><![CDATA[<p>Placeholder.</p>]]></value></jobDescription></jobDescriptions>
+    <createdAt>2026-11-01T09:00:00+00:00</createdAt>
+</position>
+<position>
+    <id>333</id>
+    <office>Munich</office>
+    <name>Product Manager</name>
+    <createdAt>2026-11-02T09:00:00+00:00</createdAt>
+</position>
+</workzag-jobs>

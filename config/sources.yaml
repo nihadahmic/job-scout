@@ -48,3 +48,9 @@ recruitee:
   enabled: true
 teamtailor:
   enabled: true
+personio:
+  enabled: true
+breezy:
+  enabled: true
+smartrecruiters:
+  enabled: true

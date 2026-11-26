@@ -164,6 +164,12 @@ class Store:
             )
         return self.conn.total_changes - before
 
+    def load_sources(self) -> dict | None:
+        return None  # local SQLite runs use companies.yaml and sources.yaml
+
+    def record_source_stats(self, table: str, stats: dict, at: str) -> None:
+        pass
+
     def load_preferences(self) -> dict | None:
         return None  # local SQLite runs have no profile; rules.yaml applies as is
 

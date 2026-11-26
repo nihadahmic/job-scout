@@ -63,6 +63,8 @@ PATTERNS: list[tuple[str, re.Pattern[str], str | None]] = [
     ("smartrecruiters", re.compile(rf"api\.smartrecruiters\.com/v1/companies/{_SLUG}"), None),
     ("teamtailor", re.compile(rf"//{_SLUG}\.teamtailor\.com"), None),
     ("breezy", re.compile(rf"//{_SLUG}\.breezy\.hr"), None),
+    ("bamboohr", re.compile(rf"//{_SLUG}\.bamboohr\.com"), None),
+    ("pinpoint", re.compile(rf"//{_SLUG}\.pinpointhq\.com"), None),
 ]
 # Path segments and subdomains that are never a company's board slug.
 NOT_SLUGS = {
@@ -127,6 +129,8 @@ HINTS = {
     "recruitee": re.compile(r"\brecruitee\b", re.I),
     "smartrecruiters": re.compile(r"\bsmartrecruiters\b", re.I),
     "teamtailor": re.compile(r"\bteamtailor\b", re.I),
+    "bamboohr": re.compile(r"\bbamboohr\b", re.I),
+    "pinpoint": re.compile(r"\bpinpointhq\b", re.I),
 }
 PROBE_URLS = {
     "greenhouse": "https://boards-api.greenhouse.io/v1/boards/{slug}",
@@ -135,6 +139,8 @@ PROBE_URLS = {
     "recruitee": "https://{slug}.recruitee.com/api/offers/",
     "smartrecruiters": "https://api.smartrecruiters.com/v1/companies/{slug}/postings?limit=1",
     "teamtailor": "https://{slug}.teamtailor.com/jobs",
+    "bamboohr": "https://{slug}.bamboohr.com/careers/list",
+    "pinpoint": "https://{slug}.pinpointhq.com/postings.json",
 }
 SKIP_HOSTS = {"angel.co", "wellfound.com", "www.angel.co", "linkedin.com", "www.linkedin.com"}
 

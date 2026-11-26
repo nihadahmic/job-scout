@@ -32,6 +32,8 @@ from scripts.import_companies import merge
         ("https://jobs.smartrecruiters.com/AcmeInc/123", "smartrecruiters", "AcmeInc", None),
         ("https://acme.teamtailor.com/jobs", "teamtailor", "acme", None),
         ("https://acme.breezy.hr/p/123", "breezy", "acme", None),
+        ("https://acme.bamboohr.com/careers/12", "bamboohr", "acme", None),
+        ("https://acme.pinpointhq.com/en/postings/abc", "pinpoint", "acme", None),
     ],
 )
 def test_detect_in(text, ats, slug, region):

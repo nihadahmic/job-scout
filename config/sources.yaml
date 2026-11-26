@@ -54,3 +54,12 @@ breezy:
   enabled: true
 smartrecruiters:
   enabled: true
+bamboohr:
+  enabled: true
+pinpoint:
+  enabled: true
+
+# RSS/Atom feeds are added on the app's Sources page (Supabase). Local runs can list them:
+feeds:
+  enabled: true
+  list: []

@@ -202,6 +202,36 @@ class SupabaseStore:
                 changed += len(r.json())
         return changed
 
+    def load_sources(self) -> dict[str, Any]:
+        """Watchlist, feeds and on/off switches managed on the app's Sources page."""
+
+        def rows(table: str, **params: str) -> list[dict[str, Any]]:
+            r = self.client.get(f"/{table}", params={"select": "*", "limit": 5000, **params})
+            r.raise_for_status()
+            return r.json()
+
+        return {
+            "watchlist": rows("watchlist", paused="eq.false"),
+            "feeds": rows("feeds", paused="eq.false"),
+            "settings": {row["source"]: row["enabled"] for row in rows("source_settings")},
+        }
+
+    def record_source_stats(self, table: str, stats: dict[int, dict[str, Any]], at: str) -> None:
+        """Write what each company (watchlist) or feed gave this run."""
+        for row_id, st in stats.items():
+            patch = {
+                "last_checked_at": at,
+                "last_fetched": st.get("fetched", 0),
+                "last_kept": st.get("kept", 0),
+                "last_new": st.get("new", 0),
+                "last_error": st.get("error"),
+            }
+            if table == "watchlist" and st.get("kept"):
+                patch["last_kept_at"] = at
+            self.client.patch(
+                f"/{table}", params={"id": f"eq.{row_id}"}, json=patch
+            ).raise_for_status()
+
     def load_preferences(self) -> dict[str, Any] | None:
         """The owner's profile preferences, or None if no profile has been saved."""
         r = self.client.get("/profile", params={"select": "preferences", "limit": 1})

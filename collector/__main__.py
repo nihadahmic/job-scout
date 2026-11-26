@@ -81,6 +81,25 @@ def main(argv: list[str] | None = None) -> int:
         except Exception as exc:
             prefs = None
             meta["profile"] = f"couldn't read the profile ({type(exc).__name__}), using rules.yaml"
+        # Companies, feeds and on/off switches from the app's Sources page. An empty or
+        # unreadable list falls back to companies.yaml and sources.yaml.
+        try:
+            sources = store.load_sources()
+        except Exception as exc:
+            sources = None
+            meta["sources"] = f"couldn't read sources ({type(exc).__name__}), using files"
+        if sources:
+            if sources["watchlist"]:
+                config.setdefault("ats", {})["_watchlist"] = sources["watchlist"]
+            config["feeds"] = {**(config.get("feeds") or {}), "_feeds": sources["feeds"]}
+            for name, enabled in sources["settings"].items():
+                if name in config:
+                    config[name] = {**(config.get(name) or {}), "enabled": bool(enabled)}
+            off = sorted(n for n, on in sources["settings"].items() if not on)
+            counts = f"{len(sources['watchlist'])} companies, {len(sources['feeds'])} feeds"
+            meta["sources"] = f"{counts} from the app" + (f"; off: {', '.join(off)}" if off else "")
+        print("sources: loaded" if sources else "sources: files")
+
         prefilter = Prefilter(apply_profile(rules, prefs))
         # The details go to the private runs table; the public Actions log only says
         # whether a profile was used.

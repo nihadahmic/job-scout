@@ -1,0 +1,46 @@
+{
+ "meta": {
+  "totalCount": 3
+ },
+ "result": [
+  {
+   "id": "10",
+   "jobOpeningName": "Senior Product Manager",
+   "departmentLabel": "Product",
+   "employmentStatusLabel": "Full-Time",
+   "location": {
+    "city": "Sarajevo",
+    "state": null
+   },
+   "atsLocation": {
+    "country": "Bosnia and Herzegovina",
+    "state": null,
+    "city": "Sarajevo"
+   },
+   "isRemote": true,
+   "locationType": "1"
+  },
+  {
+   "id": "11",
+   "jobOpeningName": "Product Manager",
+   "departmentLabel": "Product",
+   "location": {
+    "city": "Cebu City",
+    "state": "Cebu"
+   },
+   "atsLocation": {},
+   "isRemote": null,
+   "locationType": "0"
+  },
+  {
+   "id": "12",
+   "jobOpeningName": "Accountant",
+   "location": {
+    "city": "Remote"
+   },
+   "atsLocation": {},
+   "isRemote": true,
+   "locationType": "1"
+  }
+ ]
+}

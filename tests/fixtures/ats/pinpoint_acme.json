@@ -1,0 +1,37 @@
+{
+ "data": [
+  {
+   "id": "1",
+   "title": "Product Owner",
+   "url": "https://acme.pinpointhq.com/en/postings/aaa",
+   "workplace_type": "remote",
+   "workplace_type_text": "Fully remote",
+   "description": "<p>Placeholder description.</p>",
+   "key_responsibilities": "<ul><li>Placeholder item</li></ul>",
+   "key_responsibilities_header": "What you will be doing",
+   "compensation_visible": true,
+   "compensation_minimum": 60000,
+   "compensation_maximum": 80000,
+   "compensation_currency": "EUR",
+   "compensation_frequency": "year",
+   "employment_type_text": "Full Time",
+   "location": {
+    "city": "Zagreb",
+    "name": "Zagreb",
+    "country": "Croatia"
+   }
+  },
+  {
+   "id": "2",
+   "title": "Product Manager",
+   "url": "https://acme.pinpointhq.com/en/postings/bbb",
+   "workplace_type": "hybrid",
+   "description": "<p>Placeholder.</p>",
+   "compensation_visible": false,
+   "location": {
+    "city": "London",
+    "name": "London"
+   }
+  }
+ ]
+}

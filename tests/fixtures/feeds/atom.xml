@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+  <title>Acme Careers</title>
+  <entry>
+    <title>Technical Project Manager</title>
+    <link rel="alternate" href="https://careers.acme.test/jobs/42"/>
+    <id>urn:acme:job:42</id>
+    <updated>2026-11-20T09:00:00Z</updated>
+    <author><name>Acme</name></author>
+    <summary type="html">&lt;p&gt;Placeholder summary.&lt;/p&gt;</summary>
+  </entry>
+</feed>

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import logging
-from collections import Counter
+from collections import Counter, defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -97,7 +97,20 @@ def collect(
         s.error_messages.extend(getattr(source, "errors", []))
         s.errors += len(getattr(source, "errors", []))
 
-        kept = []
+        # Per company (watchlist row) or per feed: what each one gave, for the Sources page.
+        per_key: dict[int, dict[str, Any]] = defaultdict(
+            lambda: {"fetched": 0, "kept": 0, "new": 0}
+        )
+        for raw in raws:
+            key = raw.payload.get("_stat_key") if isinstance(raw.payload, dict) else None
+            if key is not None:
+                per_key[key]["fetched"] += 1
+        for key, message in getattr(source, "errors_by_key", {}).items():
+            per_key[key]["error"] = message
+        for row in getattr(source, "stat_rows", []):  # rows checked even if they listed nothing
+            per_key[row]
+
+        kept, kept_keys = [], []
         for raw in raws:
             try:
                 job = source.normalize(raw)
@@ -116,9 +129,23 @@ def collect(
                 s.dropped[verdict.reason] += 1
                 continue
             kept.append(_enrich(job, prefilter, enricher))
+            kept_keys.append(
+                raw.payload.get("_stat_key") if isinstance(raw.payload, dict) else None
+            )
 
-        for outcome in store.add_many(kept, seen_at=started_at):
+        for outcome, key in zip(store.add_many(kept, seen_at=started_at), kept_keys, strict=True):
             setattr(s, outcome, getattr(s, outcome) + 1)
+            if key is not None:
+                per_key[key]["kept"] += 1
+                if outcome == "new":
+                    per_key[key]["new"] += 1
+
+        table = "feeds" if name == "feeds" else "watchlist" if source_cls in ATS_SOURCES else None
+        if table and per_key:
+            try:
+                store.record_source_stats(table, dict(per_key), started_at)
+            except Exception as exc:  # stats are nice to have; never fail the run over them
+                log.warning("couldn't record %s stats: %s", name, exc)
 
     summary: dict[str, Any] = {k: v.as_dict() for k, v in stats.items()}
     if meta:

@@ -5,10 +5,12 @@ import yaml
 
 from collector.run import collect
 from collector.sources.ats.ashby import Ashby
+from collector.sources.ats.bamboohr import BambooHR
 from collector.sources.ats.breezy import Breezy
 from collector.sources.ats.greenhouse import Greenhouse
 from collector.sources.ats.lever import Lever
 from collector.sources.ats.personio import Personio
+from collector.sources.ats.pinpoint import Pinpoint
 from collector.sources.ats.recruitee import Recruitee
 from collector.sources.ats.smartrecruiters import SmartRecruiters
 from collector.sources.ats.teamtailor import Teamtailor
@@ -28,6 +30,9 @@ ROUTES = {
     # detail before list: FixtureClient matches the first prefix that fits
     f"{SR}/1": "ats/smartrecruiters_acme_1.json",
     f"{SR}?": "ats/smartrecruiters_acme_list.json",
+    "https://acme.bamboohr.com/careers/list": "ats/bamboohr_acme_list.json",
+    "https://acme.bamboohr.com/careers/10/detail": "ats/bamboohr_acme_10.json",
+    "https://acme.pinpointhq.com/postings.json": "ats/pinpoint_acme.json",
 }
 
 
@@ -249,3 +254,37 @@ def test_http_client_keeps_query_string():
         "https://x.test/list?page=2",
         "https://x.test/list?a=1&b=2",
     ]
+
+
+def test_bamboohr_details_only_for_remote_title_matches(fixture_client, prefilter):
+    client = fixture_client(ROUTES)
+    rows = [{"id": 5, "name": "Acme", "ats": "bamboohr", "slug": "acme"}]
+    src = BambooHR(client, {"_watchlist": rows, "_title_ok": prefilter.title_ok})
+    raws = src.fetch()
+    assert len(raws) == 3 and src.stat_rows == [5]
+    assert [c for c in client.calls if "/detail" in c] == [
+        "https://acme.bamboohr.com/careers/10/detail"
+    ]
+    jobs = {j.title: j for j in map(src.normalize, raws)}
+    spm = jobs["Senior Product Manager"]
+    assert spm.remote and spm.location_text == "Remote, Sarajevo, Bosnia and Herzegovina"
+    assert "Placeholder description." in spm.description and spm.posted_at.startswith("2026-11-20")
+    assert jobs["Product Manager"].remote is False
+    assert raws[0].payload["_stat_key"] == 5
+
+
+def test_pinpoint(fixture_client):
+    rows = [{"id": 6, "name": "Acme", "ats": "pinpoint", "slug": "acme"}]
+    src = Pinpoint(fixture_client(ROUTES), {"_watchlist": rows})
+    jobs = {j.title: j for j in map(src.normalize, src.fetch())}
+    po = jobs["Product Owner"]
+    assert po.remote and po.location_text == "Remote, Zagreb, Croatia"
+    assert po.salary_text == "EUR 60,000-80,000 / year"
+    assert "What you will be doing" in po.description and "Placeholder item" in po.description
+    assert jobs["Product Manager"].remote is False and jobs["Product Manager"].salary_text is None
+
+
+def test_watchlist_rows_from_supabase_take_precedence(fixture_client, watchlist):
+    rows = [{"id": 1, "name": "Other", "ats": "greenhouse", "slug": "acme"}]
+    src = Greenhouse(fixture_client(ROUTES), {"companies_file": str(watchlist), "_watchlist": rows})
+    assert [c["name"] for c in src.companies()] == ["Other"]

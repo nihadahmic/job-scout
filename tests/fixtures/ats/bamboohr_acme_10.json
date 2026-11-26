@@ -1,0 +1,20 @@
+{
+ "meta": {},
+ "result": {
+  "jobOpening": {
+   "jobOpeningShareUrl": "https://acme.bamboohr.com/careers/10",
+   "jobOpeningName": "Senior Product Manager",
+   "location": {
+    "city": "Sarajevo"
+   },
+   "atsLocation": {
+    "country": "Bosnia and Herzegovina",
+    "city": "Sarajevo"
+   },
+   "description": "<p>Placeholder description.</p>",
+   "compensation": null,
+   "datePosted": "2026-11-20",
+   "locationType": "1"
+  }
+ }
+}

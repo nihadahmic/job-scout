@@ -38,9 +38,15 @@ class AtsSource:
         # obvious non-matches before fetching details.
         self.title_ok = config.get("_title_ok") or (lambda title: True)
         self.errors: list[str] = []
+        self.errors_by_key: dict[int, str] = {}
         self.companies_checked = 0
+        # Companies from the app's Sources page (Supabase), when the run loaded them.
+        self.watchlist_rows: list[dict[str, Any]] | None = config.get("_watchlist")
 
     def companies(self) -> list[dict[str, Any]]:
+        if self.watchlist_rows is not None:  # from the app's Sources page
+            rows = [c for c in self.watchlist_rows if c.get("ats") == self.name and c.get("slug")]
+            return rows[: self.max_companies] if self.max_companies else rows
         if not self.watchlist.exists():
             raise FileNotFoundError(f"watchlist not found: {self.watchlist}")
         rows = [
@@ -50,16 +56,25 @@ class AtsSource:
 
     def fetch(self) -> list[RawJob]:
         raws: list[RawJob] = []
+        self.stat_rows = []
         for company in self.companies():
             self.companies_checked += 1
+            if company.get("id") is not None:
+                self.stat_rows.append(company["id"])
             try:
                 items = self.fetch_company(company)
             except httpx.HTTPStatusError as exc:
                 # 404 usually means the company moved ATS; re-run detect_ats --force for it.
-                self.errors.append(f"{company['slug']}: HTTP {exc.response.status_code}")
+                message = f"HTTP {exc.response.status_code}"
+                self.errors.append(f"{company['slug']}: {message}")
+                if company.get("id") is not None:
+                    self.errors_by_key[company["id"]] = message
                 continue
             except Exception as exc:  # one broken board must not stop the rest
-                self.errors.append(f"{company['slug']}: {type(exc).__name__}: {exc}"[:200])
+                message = f"{type(exc).__name__}: {exc}"[:200]
+                self.errors.append(f"{company['slug']}: {message}")
+                if company.get("id") is not None:
+                    self.errors_by_key[company["id"]] = message
                 continue
             for item in items:
                 job_id = self.job_id(item)
@@ -72,6 +87,7 @@ class AtsSource:
                             # board_name: set when the board belongs to a parent or new brand
                             "company": company.get("board_name") or company["name"],
                             "slug": company["slug"],
+                            "_stat_key": company.get("id"),
                         },
                     )
                 )

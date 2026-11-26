@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0" xmlns:dc="http://purl.org/dc/elements/1.1/">
+  <channel>
+    <title>Example Remote Jobs</title>
+    <item>
+      <title>Acme: Senior Product Manager</title>
+      <region>Europe Only</region>
+      <link>https://jobs.example.test/acme-senior-pm</link>
+      <guid>https://jobs.example.test/acme-senior-pm</guid>
+      <pubDate>Wed, 25 Nov 2026 06:02:20 +0000</pubDate>
+      <description>&lt;p&gt;Placeholder. Remote across Europe.&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>Product Owner at Globex</title>
+      <link>https://jobs.example.test/globex-po</link>
+      <pubDate>Tue, 24 Nov 2026 10:00:00 +0000</pubDate>
+      <description>&lt;p&gt;Placeholder.&lt;/p&gt;</description>
+    </item>
+    <item>
+      <title>Business Analyst</title>
+      <company>Initech</company>
+      <location>Remote, CET</location>
+      <link>https://jobs.example.test/initech-ba</link>
+      <description>&lt;p&gt;Placeholder.&lt;/p&gt;</description>
+    </item>
+  </channel>
+</rss>

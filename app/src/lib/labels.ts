@@ -98,6 +98,20 @@ export function daysAgo(value: string | null): string {
   return `${days} days ago`;
 }
 
+/** "24 Nov (2 days ago)"; the year is added when it isn't this year. */
+export function dateWithAge(value: string | null): string {
+  if (!value) return "";
+  const d = new Date(value);
+  const sameYear = d.getFullYear() === new Date().getFullYear();
+  const date = d.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    ...(sameYear ? {} : { year: "numeric" }),
+    timeZone: "Europe/Sarajevo",
+  });
+  return `${date} (${daysAgo(value)})`;
+}
+
 /** Why a job left the pipeline. `status` is what change_status() records; `by` colours the tag. */
 export const CLOSE_REASONS = [
   { label: "Rejected after applying", status: "not_moving_forward", by: "company" },

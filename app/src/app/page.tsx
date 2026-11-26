@@ -4,7 +4,6 @@ import { Nav } from "@/components/Nav";
 import { QuickDecision } from "@/components/QuickDecision";
 import { StatusSelect } from "@/components/StatusSelect";
 import {
-  ACTIVE_STATUSES,
   CATEGORY_LABELS,
   CATEGORY_STYLES,
   CLOSED_STATUSES,
@@ -14,7 +13,7 @@ import {
   SOURCE_LABELS,
   STATUS_LABELS,
   TIER_LABELS,
-  daysAgo,
+  dateWithAge,
   fitStyle,
   formatEur,
   type Status,
@@ -32,7 +31,16 @@ const SORTS = {
   salary: { column: "salary_max_eur_month", label: "Highest salary" },
   company: { column: "company", label: "Company A–Z" },
 } as const;
-const VIEWS = { shortlist: "Shortlist", active: "Active", closed: "Closed", all: "All" } as const;
+const VIEWS = {
+  todo: "To apply",
+  shortlist: "Shortlist",
+  applied: "Applied",
+  closed: "Closed",
+  all: "All",
+} as const;
+// The default view: jobs not applied to yet. Applied and closed ones are a click away.
+const TODO_STATUSES = ["new", "shortlisted", "in_progress"];
+const APPLIED_STATUSES = ["applied", "interviewing", "offer"];
 const POSTED = { "": "Any time", "3": "3 days", "7": "7 days", "14": "14 days", "30": "30 days" } as const;
 const SALARY_STEPS = [3000, 4000, 5000, 6000, 8000];
 
@@ -50,7 +58,8 @@ function one(value: string | string[] | undefined): string {
 
 export default async function BacklogPage({ searchParams }: { searchParams: Promise<Params> }) {
   const params = await searchParams;
-  const view = (one(params.view) || "active") as keyof typeof VIEWS;
+  const requested = one(params.view);
+  const view = (requested in VIEWS ? requested : "todo") as keyof typeof VIEWS;
   const statuses = list(params.status);
   const categories = list(params.category);
   const sources = list(params.source);
@@ -61,8 +70,8 @@ export default async function BacklogPage({ searchParams }: { searchParams: Prom
   const withSalary = one(params.has_salary) === "1";
   const showDropped = one(params.dropped) === "1";
   const q = one(params.q).trim();
-  const sortKey = (one(params.sort) || (view === "shortlist" ? "fit" : "posted")) as keyof typeof SORTS;
-  const sort = SORTS[sortKey] ?? SORTS.posted;
+  const sortKey = (one(params.sort) in SORTS ? one(params.sort) : "fit") as keyof typeof SORTS;
+  const sort = SORTS[sortKey];
   const page = Math.max(1, Number(one(params.page)) || 1);
 
   const supabase = await createClient();
@@ -73,8 +82,9 @@ export default async function BacklogPage({ searchParams }: { searchParams: Prom
       { count: "exact" },
     );
   if (statuses.length) query = query.in("status", statuses);
+  else if (view === "todo") query = query.in("status", TODO_STATUSES);
   else if (view === "shortlist") query = query.eq("status", "shortlisted");
-  else if (view === "active") query = query.in("status", [...ACTIVE_STATUSES]);
+  else if (view === "applied") query = query.in("status", APPLIED_STATUSES);
   else if (view === "closed") query = query.in("status", [...CLOSED_STATUSES]);
   if (!showDropped) query = query.is("dropped_reason", null);
   if (categories.length) query = query.in("category", categories);
@@ -108,7 +118,7 @@ export default async function BacklogPage({ searchParams }: { searchParams: Prom
   };
   const anyFilter =
     statuses.length + categories.length + sources.length + matches.length + tiers.length > 0 ||
-    !!posted || !!minSalary || withSalary || showDropped || !!q || view !== "active";
+    !!posted || !!minSalary || withSalary || showDropped || !!q || view !== "todo";
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-6">
@@ -218,7 +228,8 @@ export default async function BacklogPage({ searchParams }: { searchParams: Prom
       <div className="mb-2 flex items-baseline justify-between text-sm">
         <p className="text-zinc-500">
           <span className="font-medium text-zinc-900 dark:text-zinc-100">{total}</span> {total === 1 ? "job" : "jobs"}
-          {sortKey === "posted" ? ", newest first" : ""}
+          {", "}
+          {sort.label.toLowerCase()}
         </p>
         {anyFilter && (
           <Link href="/" className="text-xs text-zinc-500 hover:underline">
@@ -287,8 +298,15 @@ export default async function BacklogPage({ searchParams }: { searchParams: Prom
                     {formatEur(job.salary_min_eur_month)}–{formatEur(job.salary_max_eur_month)}
                   </span>
                 ) : null}
-                <span className="text-zinc-500" title={SOURCE_LABELS[job.source] ?? job.source}>
-                  {daysAgo(job.posted_at ?? job.first_seen_at)}
+                <span className="rounded-full border border-zinc-200 px-2 py-0.5 text-zinc-600 dark:border-zinc-700 dark:text-zinc-400">
+                  {SOURCE_LABELS[job.source] ?? job.source}
+                </span>
+                <span
+                  className="whitespace-nowrap text-zinc-500"
+                  title={job.posted_at ? "Date posted" : "Date found (the source gives no posting date)"}
+                >
+                  {job.posted_at ? "" : "Found "}
+                  {dateWithAge(job.posted_at ?? job.first_seen_at)}
                 </span>
                 {job.status === "shortlisted" ? (
                   <QuickDecision jobId={job.id} />

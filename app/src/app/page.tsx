@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { signOut } from "@/app/actions";
+import { Nav } from "@/components/Nav";
 import { StatusSelect } from "@/components/StatusSelect";
 import {
   ACTIVE_STATUSES,
@@ -77,10 +77,9 @@ export default async function BacklogPage({ searchParams }: { searchParams: Prom
     .order("first_seen_at", { ascending: false })
     .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
-  const [{ data: jobs, count, error }, { data: owner }, { data: userData }] = await Promise.all([
+  const [{ data: jobs, count, error }, { data: owner }] = await Promise.all([
     query,
     supabase.rpc("is_owner"),
-    supabase.auth.getUser(),
   ]);
 
   const total = count ?? 0;
@@ -94,19 +93,11 @@ export default async function BacklogPage({ searchParams }: { searchParams: Prom
 
   return (
     <main className="mx-auto max-w-7xl px-4 py-6">
-      <header className="mb-5 flex flex-wrap items-baseline justify-between gap-2">
-        <div>
-          <h1 className="text-xl font-semibold">Job Scout</h1>
-          <p className="text-sm text-zinc-500">
-            {total} {total === 1 ? "job" : "jobs"}
-            {view !== "all" && !statuses.length ? ` · ${view}` : ""}
-          </p>
-        </div>
-        <form action={signOut} className="flex items-center gap-2 text-sm text-zinc-500">
-          <span className="hidden sm:inline">{userData.user?.email}</span>
-          <button className="btn-ghost">Sign out</button>
-        </form>
-      </header>
+      <Nav active="/" />
+      <p className="mb-4 text-sm text-zinc-500">
+        {total} {total === 1 ? "job" : "jobs"}
+        {view !== "all" && !statuses.length ? ` · ${view}` : ""}
+      </p>
 
       {owner === false && (
         <p className="mb-4 rounded-md bg-amber-50 p-3 text-sm text-amber-900 dark:bg-amber-950 dark:text-amber-200">

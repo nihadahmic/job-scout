@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { NotesForm, StatusForm } from "@/components/JobActions";
+import { Nav } from "@/components/Nav";
 import {
   CATEGORY_LABELS,
   LOCATION_MATCH_LABELS,
@@ -50,6 +51,7 @@ export default async function JobPage({ searchParams }: { searchParams: Promise<
 
   return (
     <main className="mx-auto max-w-5xl px-4 py-6">
+      <Nav active="" />
       <Link href="/" className="text-sm text-zinc-500 hover:underline">
         ← Backlog
       </Link>

@@ -11,7 +11,7 @@ Built for a Senior PM based in Sarajevo, so "can I actually take this job" (loca
 | 1 | Collector: job boards + company ATS boards, prefilter, dedupe | **done** |
 | 2 | Review app (Next.js + Supabase, magic-link login): backlog, filters, statuses | **done** |
 | 3 | Screening with Gemini Flash (tier + fit, strict JSON) | next |
-| 4 | Drafting with Claude (approved roles only) | deferred |
+| 4 | Drafting: cover letter, application answers (Gemini free tier), salary (computed) | **done** |
 | 5 | Weekly metrics by source and tier | planned |
 
 ## How it works (step 1)
@@ -58,7 +58,7 @@ Options: `uv run python -m collector --only himalayas remotive --db /tmp/test.sq
 
 `app/` is a Next.js app on Vercel, with magic-link sign-in for one account:
 - **Backlog**: filters (category, location match, posted date, salary, source, status, text search) and quick status changes.
-- **Job page**: status changes with a note and an optional date, notes, history.
+- **Job page**: status changes with a note and an optional date, notes, history, and the Application kit: salary suggestion, cover letter and question answers drafted with Gemini and checked against the writing rules.
 - **Insights**: applications this week vs last, per week and per day (Sarajevo time), the funnel (applied, replied, interviewed, offer), breakdowns by source and category, a pipeline with follow-up flags, and CSV export. Built on the `applications` view over `status_history`.
 - **Runs**: each collector run with per-source counts and drop reasons.
 

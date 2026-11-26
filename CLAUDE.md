@@ -17,7 +17,7 @@ This is also a portfolio piece, so keep the code clean, the README clear, and th
 1. **Collector** (Python 3.12, `collector/`): pulls listings from public sources, normalizes them to one schema, removes duplicates, saves new ones.
 2. **Screening** (`screening/`): Gemini Flash scores each new listing and returns strict JSON. Free tier, so keep requests small and batched.
 3. **Review app** (Next.js on Vercel, `app/`): the whole backlog with filters (job category, date posted, salary where given, location/region, source, company, text search; tier and fit once screening exists), a job detail page with notes, and status changes. Login is a Supabase Auth magic link for his account only: public sign-ups off, row-level security on every table. Built before screening.
-4. **Drafting** (`drafting/`): deferred, no Claude API for now (decided 2026-11-26). When picked up: Claude API writes the cover letter, question answers and salary note for approved shortlist items only.
+4. **Drafting** (`app/src/lib/drafting/`, job page Application kit): Gemini free tier (`gemini-3.5-flash-lite`) drafts the cover letter and open question answers on demand; factual answers come from the profile; salary is computed in code. See docs/decisions.md #014. No Claude API.
 5. **Metrics**: weekly counts and reply rates by source and tier.
 
 Scheduling: GitHub Actions cron, daily at 07:30 UTC.

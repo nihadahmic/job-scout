@@ -21,7 +21,9 @@ GitHub Actions (07:30 UTC daily)
   └─ python -m collector
        ├─ himalayas       search API, country = Bosnia and Herzegovina
        ├─ remotive        public API
-       └─ weworkremotely  product category RSS
+       ├─ weworkremotely  product category RSS
+       └─ company boards  Greenhouse, Lever, Ashby, Workable, Recruitee, Teamtailor,
+                          Personio, Breezy, SmartRecruiters (one request per company)
             │  fetch() -> RawJob      (network)
             │  normalize() -> Job     (pure)
             │  prefilter              (config/rules.yaml: title, remote, location, authorization)
@@ -65,6 +67,18 @@ To set up the scheduled run:
 
 The workflow's public run log shows counts only, never listing content.
 
+## Company watchlist
+
+Company boards come from a private watchlist (`private/companies.yaml` locally, `companies.yaml` in the data repo for CI):
+
+```bash
+uv run python -m scripts.import_companies private/remote_companies_europe.csv   # CSV -> watchlist
+uv run python -m scripts.detect_ats                  # find each company's ATS and board slug
+uv run python -m scripts.detect_ats --retry-unknown  # re-check the ones not found
+```
+
+Detection saves after every company and resumes where it stopped. To fix a match by hand, edit the entry and set `ats_locked: true`; set `board_name` when a board belongs to a parent company or a new brand.
+
 ## Configuration
 
 - `config/sources.yaml`: which sources run, search queries, User-Agent and request delay.
@@ -81,8 +95,9 @@ collector/
   http.py          polite client (User-Agent, delay, optional cache)
   text.py          HTML to text, dedupe key, dates
   prefilter.py     rule-based filter applied before storing
-  sources/         one module per source
+  sources/         one module per source (sources/ats/ for company boards)
 config/            YAML config
+scripts/           watchlist import and ATS detection
 data/              local runs only (gitignored)
 docs/decisions.md  design decisions
 tests/             pytest + saved fixture responses

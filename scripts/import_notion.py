@@ -208,6 +208,16 @@ def main(argv: list[str] | None = None) -> int:
                 "/status_history", json=chunk, headers={"Prefer": "return=minimal"}
             )
             r.raise_for_status()
+        # Notion notes become dated job notes (migration 0010), on the applied date.
+        inserted = {row["id"] for row in inserts}
+        notes = [
+            {"job_id": f"notion:{a['n']}", "created_at": a["a"], "body": a["o"], "legacy": True}
+            for a in apps
+            if a.get("o") and f"notion:{a['n']}" in inserted
+        ]
+        for chunk in _chunks(notes):
+            r = store.client.post("/job_notes", json=chunk, headers={"Prefer": "return=minimal"})
+            r.raise_for_status()
         print(f"import_notion | inserted={len(inserts)} updated={len(updates)} history={len(hist)}")
     finally:
         store.close()

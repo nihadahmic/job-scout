@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { extractText, getDocumentProxy } from "unpdf";
 import { checkLetter } from "@/lib/drafting/checks";
 import { answerFact } from "@/lib/drafting/facts";
-import { GeminiError, generateJson } from "@/lib/drafting/gemini";
+import { GeminiError, generateJson, generateJsonWithModel } from "@/lib/drafting/gemini";
 import { loadPostingQuestions } from "@/lib/drafting/questions";
 import { removeContactDetails } from "@/lib/drafting/redact";
 import { suggestSalary } from "@/lib/drafting/salary";
@@ -12,6 +12,34 @@ import { withDefaults } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
 
 const MAX_POSTING_CHARS = 12_000;
+
+export type LetterDraft = {
+  id: number;
+  created_at: string;
+  kind: "draft" | "revision" | "edit" | "restore";
+  body: string;
+  notes: string | null;
+  model: string | null;
+  problems: string[];
+};
+
+/** The letter without the app's sign-off, which Gemini never writes. */
+function letterBody(letter: string): string {
+  return letter.replace(/\n\s*\nBest,\n[^\n]*\s*$/, "").trim();
+}
+
+async function recordDraft(
+  jobId: string,
+  draft: Omit<LetterDraft, "id" | "created_at">,
+): Promise<LetterDraft | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("letter_drafts")
+    .insert({ job_id: jobId, ...draft })
+    .select("id, created_at, kind, body, notes, model, problems")
+    .single();
+  return (data as LetterDraft) ?? null;
+}
 
 export type Answer = {
   question: string;
@@ -28,7 +56,9 @@ async function context(jobId: string) {
   const [{ data: job }, { data: profileRow }] = await Promise.all([
     supabase
       .from("jobs")
-      .select("id, title, company, description, source, source_id, salary_min_eur_month, salary_max_eur_month")
+      .select(
+        "id, title, company, description, source, source_id, salary_min_eur_month, salary_max_eur_month, cover_letter",
+      )
       .eq("id", jobId)
       .maybeSingle(),
     supabase.from("profile").select("*").maybeSingle(),
@@ -73,39 +103,89 @@ async function save(jobId: string, patch: Record<string, unknown>) {
   revalidatePath("/job");
 }
 
-export async function draftCoverLetter(jobId: string): Promise<Ok<{ letter: string; problems: string[] }> | Fail> {
+export async function draftCoverLetter(
+  jobId: string,
+  notes = "",
+): Promise<Ok<{ letter: string; problems: string[]; draft: LetterDraft | null }> | Fail> {
   try {
     const ctx = await context(jobId);
     const cv = await cvText(ctx);
     const rules = ctx.profile.writing_rules || "Cover letter, 170 to 230 words. Plain, direct, no platitudes.";
-    const prompt = `${material(ctx, cv)}\n\n---\n\nMY WRITING RULES (follow exactly):\n${rules}\n\nWrite the cover letter for this job. Start straight with the first paragraph: no "Dear..." line, no date, no address. End without a sign-off or name; the app adds those. Separate paragraphs with a blank line.`;
+    const wishes = notes.trim().slice(0, 2_000);
+    const current = ctx.job.cover_letter ? letterBody(ctx.job.cover_letter) : "";
+    const revising = Boolean(wishes && current);
+    const task = revising
+      ? `CURRENT LETTER:\n${current}\n\nMY NOTES FOR THIS REVISION:\n${wishes}\n\nRevise the current letter following my notes. Keep what the notes don't ask to change. My writing rules and the facts in my material still win over the notes: never invent anything to satisfy a note.`
+      : `${wishes ? `MY NOTES FOR THIS DRAFT (follow them; the writing rules and my facts still win):\n${wishes}\n\n` : ""}Write the cover letter for this job.`;
+    const prompt = `${material(ctx, cv)}\n\n---\n\nMY WRITING RULES (follow exactly):\n${rules}\n\n${task} Start straight with the first paragraph: no "Dear..." line, no date, no address. End without a sign-off or name; the app adds those. Separate paragraphs with a blank line.`;
     const schema = { type: "OBJECT", properties: { letter: { type: "STRING" } }, required: ["letter"] };
 
-    let { letter } = await generateJson<{ letter: string }>({ system: SYSTEM, prompt, schema });
+    let { data, model } = await generateJsonWithModel<{ letter: string }>({ system: SYSTEM, prompt, schema });
+    let letter = data.letter;
     let problems = checkLetter(letter);
     if (problems.length) {
-      ({ letter } = await generateJson<{ letter: string }>({
+      ({ data, model } = await generateJsonWithModel<{ letter: string }>({
         system: SYSTEM,
         prompt: `${prompt}\n\nYOUR PREVIOUS DRAFT:\n${letter}\n\nIt broke these rules: ${problems.join("; ")}. Rewrite it so it follows every rule.`,
         schema,
       }));
+      letter = data.letter;
       problems = checkLetter(letter);
     }
     const name = ctx.profile.facts.full_name.trim();
     const full = `${letter.trim()}\n\nBest,\n${name || "[your name]"}`;
     await save(jobId, { cover_letter: full });
-    return { ok: true, letter: full, problems };
+    const draft = await recordDraft(jobId, {
+      kind: revising ? "revision" : "draft",
+      body: full,
+      notes: wishes || null,
+      model,
+      problems,
+    });
+    return { ok: true, letter: full, problems, draft };
   } catch (e) {
     return { ok: false, error: e instanceof GeminiError ? e.message : "Drafting failed. Try again." };
   }
 }
 
-export async function saveCoverLetter(jobId: string, letter: string): Promise<Ok<object> | Fail> {
+export async function saveCoverLetter(jobId: string, letter: string): Promise<Ok<{ draft: LetterDraft | null }> | Fail> {
   try {
-    await save(jobId, { cover_letter: letter.slice(0, 20_000) });
-    return { ok: true };
+    const body = letter.slice(0, 20_000);
+    await save(jobId, { cover_letter: body });
+    const draft = await recordDraft(jobId, {
+      kind: "edit",
+      body,
+      notes: null,
+      model: null,
+      problems: checkLetter(letterBody(body)),
+    });
+    return { ok: true, draft };
   } catch (e) {
     return { ok: false, error: e instanceof Error ? e.message : "Couldn't save." };
+  }
+}
+
+export async function restoreDraft(jobId: string, draftId: number): Promise<Ok<{ letter: string; draft: LetterDraft | null }> | Fail> {
+  try {
+    const supabase = await createClient();
+    const { data: old } = await supabase
+      .from("letter_drafts")
+      .select("body, problems")
+      .eq("id", draftId)
+      .eq("job_id", jobId)
+      .maybeSingle();
+    if (!old) return { ok: false, error: "That version no longer exists." };
+    await save(jobId, { cover_letter: old.body });
+    const draft = await recordDraft(jobId, {
+      kind: "restore",
+      body: old.body,
+      notes: `Restored version #${draftId}`,
+      model: null,
+      problems: old.problems ?? [],
+    });
+    return { ok: true, letter: old.body, draft };
+  } catch (e) {
+    return { ok: false, error: e instanceof Error ? e.message : "Couldn't restore." };
   }
 }
 

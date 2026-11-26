@@ -17,6 +17,11 @@ export function geminiConfigured(): boolean {
 type Request = { system: string; prompt: string; schema: Record<string, unknown>; temperature?: number };
 
 export async function generateJson<T>(opts: Request): Promise<T> {
+  return (await generateJsonWithModel<T>(opts)).data;
+}
+
+/** Like generateJson, and also says which model answered. */
+export async function generateJsonWithModel<T>(opts: Request): Promise<{ data: T; model: string }> {
   const key = process.env.GEMINI_API_KEY;
   if (!key) throw new GeminiError("Gemini isn't set up yet: add GEMINI_API_KEY in Vercel.");
   const preferred = process.env.GEMINI_MODEL?.trim();
@@ -25,7 +30,8 @@ export async function generateJson<T>(opts: Request): Promise<T> {
   for (const [i, model] of models.entries()) {
     const last = i === models.length - 1;
     try {
-      return await callModel<T>(key, model, opts, last ? FALLBACK_TIMEOUT_MS : PREFERRED_TIMEOUT_MS);
+      const data = await callModel<T>(key, model, opts, last ? FALLBACK_TIMEOUT_MS : PREFERRED_TIMEOUT_MS);
+      return { data, model };
     } catch (e) {
       lastError = e instanceof GeminiError ? e : new GeminiError("Gemini didn't answer in time. Try again.");
       // Busy, rate-limited or slow: try the next model. Anything else won't improve.

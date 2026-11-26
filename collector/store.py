@@ -131,6 +131,29 @@ class Store:
             (reason, job_id),
         )
 
+    def mark_dropped_many(self, reasons: dict[str, str]) -> int:
+        before = self.conn.total_changes
+        for job_id, reason in reasons.items():
+            self.mark_dropped(job_id, reason)
+        return self.conn.total_changes - before
+
+    def unscreened(self) -> list[dict]:
+        self.conn.row_factory = sqlite3.Row
+        try:
+            rows = self.conn.execute(
+                "SELECT * FROM jobs "
+                "WHERE dropped_reason IS NULL AND tier IS NULL AND status = 'new'"
+            ).fetchall()
+        finally:
+            self.conn.row_factory = None
+        out = []
+        for r in rows:
+            row = dict(r)
+            row["extra"] = json.loads(row.get("extra") or "{}")
+            row["remote"] = bool(row["remote"])
+            out.append(row)
+        return out
+
     def record_run(self, started_at: str, finished_at: str, summary: dict) -> None:
         self.conn.execute(
             "INSERT INTO runs (started_at, finished_at, summary) VALUES (?, ?, ?)",

@@ -13,8 +13,13 @@ from collector.prefilter import Prefilter
 from collector.run import collect, load_config, source_lines, summary_line
 from collector.sources import SOURCES
 from collector.store import Store
+from collector.supabase_store import SupabaseStore, load_dotenv
 
 ROOT = Path(__file__).resolve().parent.parent
+
+
+def store_path(args) -> str:
+    return f"sqlite {args.db or 'data/jobs.sqlite'}"
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -26,7 +31,12 @@ def main(argv: list[str] | None = None) -> int:
         type=Path,
         help="company watchlist for ATS sources (default: private/companies.yaml)",
     )
-    parser.add_argument("--db", type=Path, default=ROOT / "data" / "jobs.sqlite")
+    parser.add_argument(
+        "--db",
+        type=Path,
+        help="write to this SQLite file instead of Supabase (default when Supabase isn't set up: "
+        "data/jobs.sqlite)",
+    )
     parser.add_argument(
         "--cache", action="store_true", help="cache HTTP responses in .cache/ (development)"
     )
@@ -51,7 +61,13 @@ def main(argv: list[str] | None = None) -> int:
         timeout_seconds=float(http.get("timeout_seconds", 30)),
         cache_dir=ROOT / ".cache" / "http" if args.cache else None,
     )
-    store = Store(args.db)
+    # Supabase when SUPABASE_URL and SUPABASE_SERVICE_KEY are set (CI secrets or .env),
+    # unless --db asks for a local SQLite file.
+    load_dotenv(ROOT / ".env")
+    store = None if args.db else SupabaseStore.from_env()
+    if store is None:
+        store = Store(args.db or ROOT / "data" / "jobs.sqlite")
+    print(f"store: {'supabase' if isinstance(store, SupabaseStore) else store_path(args)}")
     try:
         rules = load_config(args.rules)
         stats = collect(

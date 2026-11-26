@@ -251,3 +251,21 @@ def test_requirement_drops_stay_visible_with_capped_fit(db, store):
     assert j2["dropped_reason"] == "screening:iGaming company"
     assert j3["dropped_reason"] is None and j3["fit"] == 40
     assert stats.dropped == 1 and stats.tiers["requirement"] == 2
+
+
+def test_response_schema_has_no_empty_enum_values():
+    """Gemini rejects a schema whose enum contains "" (found on the first CI run)."""
+    from screening.models import RESPONSE_SCHEMA
+
+    def enums(node):
+        if isinstance(node, dict):
+            if "enum" in node:
+                yield node["enum"]
+            for v in node.values():
+                yield from enums(v)
+
+    assert all(all(v != "" for v in e) for e in enums(RESPONSE_SCHEMA))
+    assert (
+        JobVerdict.model_validate({**verdict(1, "1", 50), "drop_category": "none"}).drop_category
+        == ""
+    )

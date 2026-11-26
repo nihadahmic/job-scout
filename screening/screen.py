@@ -185,7 +185,10 @@ def screen(
             )
             break
         except GeminiError as e:
-            if not dry_run:
+            if dry_run:
+                print(f"  error for {len(batch)} jobs: {str(e)[:200]}")
+                stats.errors += len(batch)
+            else:
                 mark_errors(store, [j["id"] for j in batch], str(e), stats)
             continue
         stats.model = gemini.last_model

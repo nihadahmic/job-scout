@@ -18,6 +18,12 @@ class JobVerdict(BaseModel):
     # "requirement" (a hard requirement he lacks) keeps it visible with a low fit.
     drop_category: Literal["", "work_permit", "location", "onsite", "industry", "requirement"] = ""
 
+    @field_validator("drop_category", mode="before")
+    @classmethod
+    def _none_is_empty(cls, v):
+        # Gemini's schema can't list "" as an enum value, so it answers "none".
+        return "" if v in (None, "none") else v
+
     @field_validator("tier", mode="before")
     @classmethod
     def _tier_as_text(cls, v):
@@ -51,7 +57,7 @@ RESPONSE_SCHEMA = {
                     "drop_category": {
                         "type": "STRING",
                         "enum": [
-                            "",
+                            "none",
                             "work_permit",
                             "location",
                             "onsite",

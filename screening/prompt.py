@@ -25,7 +25,7 @@ Fit (0-100): how well his experience matches what the role needs (domain, level,
 Be honest; most jobs are 40-75. Name the main gap in the reason when there is one.
 fit_reason: one sentence, at most 25 words. eligibility_note: at most 20 words, quote the
 posting's location or hiring wording when it decides the tier. drop_reason: empty unless tier
-is "drop". drop_category: empty unless tier is "drop"; then one of work_permit, location,
+is "drop". drop_category: "none" unless tier is "drop"; then one of work_permit, location,
 onsite, industry, requirement. Never use em dashes."""
 
 

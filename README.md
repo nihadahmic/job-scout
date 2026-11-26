@@ -54,9 +54,13 @@ make lint
 
 Options: `uv run python -m collector --only himalayas remotive --db /tmp/test.sqlite`.
 
+## Review app
+
+`app/` is a Next.js app on Vercel: the backlog with filters (category, location match, posted date, salary, source, status, text search), a job page with notes and status history, and magic-link sign-in for one account. See [app/README.md](app/README.md) and `supabase/migrations/` for the schema.
+
 ## Where the data lives
 
-This repo holds code only. Collected listings, and later screening results and application history, go to a separate **private** repo (`<owner>/job-scout-data` by default). Job descriptions belong to the boards they came from, and an application history isn't something to publish. Local runs write to `data/`, which is gitignored. From step 3 the data moves to Supabase.
+This repo holds code only. Jobs, statuses and history live in Supabase, behind row-level security. Private config the collector reads (the company watchlist) lives in a separate **private** repo (`<owner>/job-scout-data` by default). Job descriptions belong to the boards they came from, and an application history isn't something to publish. Local runs write to `data/`, which is gitignored. From step 3 the data moves to Supabase.
 
 To set up the scheduled run:
 

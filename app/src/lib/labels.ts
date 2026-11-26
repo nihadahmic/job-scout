@@ -74,6 +74,9 @@ export const SOURCE_LABELS: Record<string, string> = {
   breezy: "Breezy",
   smartrecruiters: "SmartRecruiters",
   notion: "Notion (imported)",
+  bamboohr: "BambooHR",
+  pinpoint: "Pinpoint",
+  feeds: "RSS feeds",
 };
 
 export function isStatus(value: string): value is Status {

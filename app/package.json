@@ -15,6 +15,7 @@
   "dependencies": {
     "@supabase/ssr": "^0.12.7",
     "@supabase/supabase-js": "^2.119.2",
+    "fast-xml-parser": "^4.5.7",
     "next": "^15.5.29",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",

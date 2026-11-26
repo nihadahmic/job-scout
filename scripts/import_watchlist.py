@@ -59,9 +59,8 @@ def main(argv: list[str] | None = None) -> int:
         r = store.client.get(
             "/watchlist", params={"select": "id"}, headers={"Prefer": "count=exact", "Range": "0-0"}
         )
-        print(
-            f"import_watchlist | Supabase watchlist now has {r.headers.get('content-range', '?').split('/')[-1]} companies"
-        )
+        total = r.headers.get("content-range", "?").split("/")[-1]
+        print(f"import_watchlist | Supabase watchlist now has {total} companies")
     finally:
         store.close()
     return 0

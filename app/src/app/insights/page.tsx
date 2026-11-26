@@ -36,13 +36,15 @@ export default async function InsightsPage({
   const params = await searchParams;
   const range = (params.range && params.range in RANGES ? params.range : "all") as keyof typeof RANGES;
   const supabase = await createClient();
-  const [{ data, error }] = await Promise.all([
+  const [{ data, error }, { data: profileRow }] = await Promise.all([
     supabase
       .from("applications")
       .select("id, company, title, source, category, status, url, applied_at, applied_day, replied_at, interviewed, offered, last_change_at")
       .order("applied_at", { ascending: false })
       .limit(5000),
+    supabase.from("profile").select("weekly_goal").maybeSingle(),
   ]);
+  const goal = profileRow?.weekly_goal ?? null;
   const apps = (data ?? []) as App[];
   const now = today();
   const thisWeek = weekStart(now);
@@ -126,7 +128,12 @@ export default async function InsightsPage({
       )}
 
       <section className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Kpi label="Applied this week" value={weekCount(thisWeek)} sub={`since Mon ${shortDay(thisWeek)}`} />
+        <Kpi
+          label="Applied this week"
+          value={goal ? `${weekCount(thisWeek)} / ${goal}` : weekCount(thisWeek)}
+          sub={`since Mon ${shortDay(thisWeek)}`}
+          progress={goal ? Math.min(1, weekCount(thisWeek) / goal) : undefined}
+        />
         <Kpi label="Last week" value={lastWeek} sub={`4-week average ${avg4}`} />
         <Kpi label={`Reply rate · ${RANGES[range].toLowerCase()}`} value={pct(replied, inRange.length)} sub={`${replied} of ${inRange.length}${medianReply != null ? ` · median ${medianReply} days` : ""}`} />
         <Kpi label="In interviews now" value={active("interviewing").length} sub={`${active("offer").length} at offer stage`} />
@@ -261,11 +268,29 @@ export default async function InsightsPage({
   );
 }
 
-function Kpi({ label, value, sub }: { label: string; value: string | number; sub: string }) {
+function Kpi({
+  label,
+  value,
+  sub,
+  progress,
+}: {
+  label: string;
+  value: string | number;
+  sub: string;
+  progress?: number;
+}) {
   return (
     <div className="rounded-lg bg-zinc-100 p-3 dark:bg-zinc-900">
       <p className="text-xs text-zinc-500">{label}</p>
       <p className="text-2xl font-semibold tabular-nums">{value}</p>
+      {progress != null && (
+        <div className="my-1 h-1.5 rounded bg-zinc-200 dark:bg-zinc-800">
+          <div
+            className={`h-1.5 rounded ${progress >= 1 ? "bg-emerald-500" : "bg-sky-500"}`}
+            style={{ width: `${Math.round(progress * 100)}%` }}
+          />
+        </div>
+      )}
       <p className="text-xs text-zinc-500">{sub}</p>
     </div>
   );

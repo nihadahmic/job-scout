@@ -16,6 +16,7 @@ import {
   formatEur,
   type Status,
 } from "@/lib/labels";
+import { monthlyFloor, withDefaults } from "@/lib/profile";
 import { createClient } from "@/lib/supabase/server";
 
 export const dynamic = "force-dynamic";
@@ -31,8 +32,6 @@ const VIEWS = { active: "Active", closed: "Closed", all: "All" } as const;
 const POSTED = { "": "Any time", "3": "3 days", "7": "7 days", "14": "14 days", "30": "30 days" } as const;
 const SALARY_STEPS = [3000, 4000, 5000, 6000, 8000];
 
-// Server-only setting: highlights salaries at or above it. Never sent to the browser.
-const SALARY_FLOOR = Number(process.env.SALARY_FLOOR_EUR_MONTH) || null;
 
 type Params = Record<string, string | string[] | undefined>;
 
@@ -84,7 +83,13 @@ export default async function BacklogPage({ searchParams }: { searchParams: Prom
     .order("first_seen_at", { ascending: false })
     .range((page - 1) * PAGE_SIZE, page * PAGE_SIZE - 1);
 
-  const [{ data: jobs, count, error }, { data: owner }] = await Promise.all([query, supabase.rpc("is_owner")]);
+  const [{ data: jobs, count, error }, { data: owner }, { data: profileRow }] = await Promise.all([
+    query,
+    supabase.rpc("is_owner"),
+    supabase.from("profile").select("preferences").maybeSingle(),
+  ]);
+  // Highlights salaries at or above the floor set on the Profile page.
+  const salaryFloor = monthlyFloor(withDefaults(profileRow).preferences);
   const total = count ?? 0;
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const pageHref = (n: number) => {
@@ -211,7 +216,7 @@ export default async function BacklogPage({ searchParams }: { searchParams: Prom
         {(jobs ?? []).map((job) => {
           const style = CATEGORY_STYLES[job.category ?? ""] ?? DEFAULT_CATEGORY_STYLE;
           const isNew = Date.now() - new Date(job.first_seen_at).getTime() < 86_400_000;
-          const aboveFloor = SALARY_FLOOR != null && (job.salary_max_eur_month ?? 0) >= SALARY_FLOOR;
+          const aboveFloor = salaryFloor != null && (job.salary_max_eur_month ?? 0) >= salaryFloor;
           return (
             <li
               key={job.id}

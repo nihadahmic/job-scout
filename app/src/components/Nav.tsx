@@ -6,9 +6,10 @@ const LINKS = [
   { href: "/pipeline", label: "Pipeline" },
   { href: "/insights", label: "Insights" },
   { href: "/runs", label: "Runs" },
+  { href: "/profile", label: "Profile" },
 ];
 
-export function Nav({ active }: { active: "/" | "/pipeline" | "/insights" | "/runs" | "" }) {
+export function Nav({ active }: { active: "/" | "/pipeline" | "/insights" | "/runs" | "/profile" | "" }) {
   return (
     <nav className="mb-5 flex flex-wrap items-center gap-1 border-b border-zinc-200 pb-3 text-sm dark:border-zinc-800">
       <span className="mr-3 font-semibold">Job Scout</span>

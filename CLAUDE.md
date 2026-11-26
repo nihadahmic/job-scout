@@ -16,8 +16,8 @@ This is also a portfolio piece, so keep the code clean, the README clear, and th
 ## Architecture (build in this order, each step usable on its own)
 1. **Collector** (Python 3.12, `collector/`): pulls listings from public sources, normalizes them to one schema, removes duplicates, saves new ones.
 2. **Screening** (`screening/`): Gemini Flash scores each new listing and returns strict JSON. Free tier, so keep requests small and batched.
-3. **Review app** (Next.js on Vercel, `app/`): list of shortlisted roles, editable drafts, Approve/Skip. Behind his login.
-4. **Drafting** (`drafting/`): Claude API writes the cover letter, question answers and salary note for approved shortlist items only.
+3. **Review app** (Next.js on Vercel, `app/`): the whole backlog with filters (job category, date posted, salary where given, location/region, source, company, text search; tier and fit once screening exists), a job detail page with notes, and status changes. Login is a Supabase Auth magic link for his account only: public sign-ups off, row-level security on every table. Built before screening.
+4. **Drafting** (`drafting/`): deferred, no Claude API for now (decided 2026-11-26). When picked up: Claude API writes the cover letter, question answers and salary note for approved shortlist items only.
 5. **Metrics**: weekly counts and reply rates by source and tier.
 
 Scheduling: GitHub Actions cron, daily at 07:30 UTC.
@@ -26,7 +26,7 @@ Scheduling: GitHub Actions cron, daily at 07:30 UTC.
 - Steps 1-2: `jobs.sqlite` committed by the GitHub Action after each run to a separate private repo (`job-scout-data`), never to this public code repo. Local runs write to `data/` (gitignored). Private config such as `applied.yaml` lives in the data repo too; this repo keeps `.example` files. See `docs/decisions.md` #008.
 - Step 3 onward: migrate to Supabase (Postgres, free tier) with Supabase Auth for the review app. Keep the schema the same so the migration is a straight copy.
 
-Job schema (start here, extend as needed): `id` (source + source_id), `source`, `url`, `company`, `title`, `location_text`, `remote` (bool), `posted_at`, `description`, `salary_text`, `apply_url`, `first_seen_at`, then screening fields `tier`, `fit`, `fit_reason`, `eligibility_note`, `dropped_reason`, then review fields `status` (new, shortlisted, approved, skipped, applied, blocked), `cover_letter`, `answers` (json), `salary_answer`, `applied_at`, `reply` (none, rejected, interview, offer).
+Job schema (start here, extend as needed): `id` (source + source_id), `source`, `url`, `company`, `title`, `location_text`, `remote` (bool), `posted_at`, `description`, `salary_text`, `apply_url`, `first_seen_at`, then screening fields `tier`, `fit`, `fit_reason`, `eligibility_note`, `dropped_reason`, then `category` (job category from the title: product_manager, product_owner, business_analyst, project_manager, implementation), then review fields: one pipeline `status` (active: new, shortlisted, in_progress, applied, interviewing, offer; closed: skipped, withdrawn, not_moving_forward, accepted, declined), `notes`, `cover_letter`, `answers` (json), `salary_answer`, `applied_at`. Every status change goes in a `status_history` table (job id, from, to, changed_at, note) for the metrics.
 
 ## Sources (public only)
 Start with three, add more once the pipeline works end to end:
@@ -52,7 +52,7 @@ Gemini output must be strict JSON validated with a schema (pydantic). On invalid
 ## Privacy and secrets
 - Gemini free tier may use inputs to improve Google's products. Send Gemini only job text and `config/profile.md`, which is a skills summary with no name, contact details, employers' internal info or the CV file.
 - The full CV and contact details never go in the repo. Keep them in `private/` (gitignored) for the drafting step only.
-- Secrets live in GitHub Actions secrets and Vercel env vars: `GEMINI_API_KEY`, `ANTHROPIC_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY`. Never print or commit them. Provide `.env.example`.
+- Secrets live in GitHub Actions secrets and Vercel env vars: `GEMINI_API_KEY`, `SUPABASE_URL`, `SUPABASE_SERVICE_KEY` (and `ANTHROPIC_API_KEY` only if drafting is picked up). Never print or commit them. Provide `.env.example`.
 
 ## Drafting rules (step 4)
 Cover-letter style rules and salary targets are private. They live in `drafting.md` in the private data repo (`job-scout-data`), and the drafting step reads them from that checkout. Don't copy them into this repo.

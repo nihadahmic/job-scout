@@ -45,3 +45,9 @@ Most listings fail on things a regex can see: wrong role, wrong seniority, US-on
 Only jobs that pass are stored, which also keeps the committed database small. Rows stored before the prefilter existed get `dropped_reason` set the next time they are fetched, so screening can skip them.
 Location rules: Bosnia, Serbia, Croatia, Europe/European, EMEA, CET or UTC+1/+2 make a job eligible, and win over anything else in the location. "Worldwide"/"Anywhere" counts only when no other specific place is named ("Anywhere in the World, United States" is US-only). A plain "Remote" falls back to the description. Restrictions in the title ("(EU only)") override a board's country list. "EU"/"European Union" on its own is treated as EU-only, since that usually means EU residence or a permit.
 Known gaps against the tiers in CLAUDE.md: a location naming only Slovenia, Montenegro, North Macedonia, "Balkans" or "CEE" is dropped, and a plain "Remote" with no region in the text is dropped as `unclear` instead of reaching tier 3. Both are one line in `rules.yaml` to change.
+
+## 010. Review app before screening, magic-link login, drafting deferred
+**Date:** 2026-11-26
+The collector already produces a backlog worth browsing, and the status history behind the metrics only exists once statuses are tracked, so the review app comes before screening. Screening later fills tier and fit columns the app already shows.
+Statuses are one pipeline field (new, shortlisted, in_progress, applied, interviewing, offer; closed: skipped, withdrawn, not_moving_forward, accepted, declined) with a `status_history` table, replacing the separate `status` and `reply` fields first planned. Login is a Supabase magic link for one account, public sign-ups off; row-level security is the actual access control, since the browser key is public.
+Drafting with the Claude API is deferred: the daily pipeline (collector, prefilter, Gemini screening) runs with no paid model.

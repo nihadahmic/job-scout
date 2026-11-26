@@ -56,7 +56,13 @@ Options: `uv run python -m collector --only himalayas remotive --db /tmp/test.sq
 
 ## Review app
 
-`app/` is a Next.js app on Vercel: the backlog with filters (category, location match, posted date, salary, source, status, text search), a job page with notes and status history, and magic-link sign-in for one account. See [app/README.md](app/README.md) and `supabase/migrations/` for the schema.
+`app/` is a Next.js app on Vercel, with magic-link sign-in for one account:
+- **Backlog**: filters (category, location match, posted date, salary, source, status, text search) and quick status changes.
+- **Job page**: status changes with a note and an optional date, notes, history.
+- **Insights**: applications this week vs last, per week and per day (Sarajevo time), the funnel (applied, replied, interviewed, offer), breakdowns by source and category, a pipeline with follow-up flags, and CSV export. Built on the `applications` view over `status_history`.
+- **Runs**: each collector run with per-source counts and drop reasons.
+
+Earlier applications tracked in Notion can be imported with `scripts/import_notion.py` (keeps applied dates and builds the status history). See [app/README.md](app/README.md) and `supabase/migrations/` for the schema.
 
 ## Where the data lives
 

@@ -6,6 +6,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
+import httpx
 import yaml
 
 from collector.http import Fetcher
@@ -53,6 +54,10 @@ class AtsSource:
             self.companies_checked += 1
             try:
                 items = self.fetch_company(company)
+            except httpx.HTTPStatusError as exc:
+                # 404 usually means the company moved ATS; re-run detect_ats --force for it.
+                self.errors.append(f"{company['slug']}: HTTP {exc.response.status_code}")
+                continue
             except Exception as exc:  # one broken board must not stop the rest
                 self.errors.append(f"{company['slug']}: {type(exc).__name__}: {exc}"[:200])
                 continue
@@ -94,7 +99,19 @@ def contains_remote(*values: str | None) -> bool:
     return any("remote" in (v or "").lower() for v in values)
 
 
+def _number(value):
+    """Salary amounts arrive as numbers or numeric strings ("65000", "65000.0")."""
+    if isinstance(value, (int, float)):
+        return int(value) if float(value).is_integer() else value
+    try:
+        f = float(str(value).replace(",", ""))
+    except (TypeError, ValueError):
+        return None
+    return int(f) if f.is_integer() else f
+
+
 def salary_from_range(lo, hi, currency: str | None, period: str | None) -> str | None:
+    lo, hi = _number(lo), _number(hi)
     if lo is None and hi is None:
         return None
     amount = f"{lo:,}-{hi:,}" if lo is not None and hi is not None else f"{lo or hi:,}"

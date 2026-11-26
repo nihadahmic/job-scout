@@ -142,6 +142,13 @@ def test_smartrecruiters_fetches_details_only_for_remote_title_matches(
     assert "Placeholder description." in ba.description
 
 
+def test_salary_accepts_numeric_strings():
+    from collector.sources.ats.base import salary_from_range
+
+    assert salary_from_range("65000", "80000.0", "EUR", "year") == "EUR 65,000-80,000 / year"
+    assert salary_from_range(None, "n/a", "EUR", None) is None
+
+
 def test_teamtailor_custom_domain_url():
     source = Teamtailor(None, {})
     assert source.board_url("careers.acme.io", None) == "https://careers.acme.io/jobs.rss"
@@ -158,6 +165,21 @@ def test_broken_board_is_an_error_not_a_crash(fixture_client, watchlist, tmp_pat
     source = Lever(fixture_client(routes), {"companies_file": str(watchlist)})
     assert source.fetch() == []
     assert len(source.errors) == 1 and source.errors[0].startswith("acme:")
+
+
+def test_missing_board_is_reported_as_http_status(tmp_path, watchlist):
+    import httpx
+
+    class NotFound:
+        def get_text(self, url, params=None):
+            request = httpx.Request("GET", url)
+            raise httpx.HTTPStatusError(
+                "404", request=request, response=httpx.Response(404, request=request)
+            )
+
+    source = Lever(NotFound(), {"companies_file": str(watchlist)})
+    source.fetch()
+    assert source.errors == ["acme: HTTP 404"]
 
 
 def test_missing_watchlist_is_reported(fixture_client, tmp_path, prefilter):

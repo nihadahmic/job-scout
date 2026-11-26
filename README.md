@@ -8,9 +8,9 @@ Built for a Senior PM based in Sarajevo, so "can I actually take this job" (loca
 
 | Step | What | State |
 |---|---|---|
-| 1 | Collector: job boards + company ATS boards, prefilter, dedupe, SQLite | **done** |
-| 2 | Review app (Next.js + Supabase, magic-link login): backlog, filters, statuses | next |
-| 3 | Screening with Gemini Flash (tier + fit, strict JSON) | planned |
+| 1 | Collector: job boards + company ATS boards, prefilter, dedupe | **done** |
+| 2 | Review app (Next.js + Supabase, magic-link login): backlog, filters, statuses | **done** |
+| 3 | Screening with Gemini Flash (tier + fit, strict JSON) | next |
 | 4 | Drafting with Claude (approved roles only) | deferred |
 | 5 | Weekly metrics by source and tier | planned |
 

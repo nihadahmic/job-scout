@@ -23,8 +23,9 @@ This is also a portfolio piece, so keep the code clean, the README clear, and th
 Scheduling: GitHub Actions cron, daily at 07:30 UTC.
 
 ## Storage
-- Steps 1-2: `jobs.sqlite` committed by the GitHub Action after each run to a separate private repo (`job-scout-data`), never to this public code repo. Local runs write to `data/` (gitignored). Private config such as `applied.yaml` lives in the data repo too; this repo keeps `.example` files. See `docs/decisions.md` #008.
-- Step 3 onward: migrate to Supabase (Postgres, free tier) with Supabase Auth for the review app. Keep the schema the same so the migration is a straight copy.
+- Supabase (Postgres, free tier) is the single store since 2026-11-26. The collector writes over the REST API with the secret key (`SUPABASE_URL`, `SUPABASE_SERVICE_KEY`); the review app reads as the signed-in user with the publishable key. Schema and grants live in `supabase/migrations/` (new changes go in new numbered files, applied in the Supabase SQL editor).
+- Access control is in the database: RLS on every table, `app_owner` names the one allowed account (set by hand, never in the repo), the app may only update `notes` and call `change_status()`. Never put the secret key in a `NEXT_PUBLIC_*` variable; `app/next.config.ts` refuses to build if it is.
+- SQLite (`--db`) remains for local runs and tests. The private data repo (`job-scout-data`) holds private config only: `companies.yaml`, `drafting.md`, later `applied.yaml` and the profile.
 
 Job schema (start here, extend as needed): `id` (source + source_id), `source`, `url`, `company`, `title`, `location_text`, `remote` (bool), `posted_at`, `description`, `salary_text`, `apply_url`, `first_seen_at`, then screening fields `tier`, `fit`, `fit_reason`, `eligibility_note`, `dropped_reason`, then `category` (job category from the title: product_manager, product_owner, business_analyst, project_manager, implementation), then review fields: one pipeline `status` (active: new, shortlisted, in_progress, applied, interviewing, offer; closed: skipped, withdrawn, not_moving_forward, accepted, declined), `notes`, `cover_letter`, `answers` (json), `salary_answer`, `applied_at`. Every status change goes in a `status_history` table (job id, from, to, changed_at, note) for the metrics.
 

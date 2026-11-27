@@ -64,5 +64,15 @@ export async function recentRuns(count = 10): Promise<Run[]> {
 
 export async function runSteps(runId: number): Promise<Step[]> {
   const data = await gh(`/actions/runs/${runId}/jobs`);
-  return ((data?.jobs ?? [])[0]?.steps ?? []) as Step[];
+  // The workflow has a small "gate" job first; progress comes from the "collect" job.
+  const jobs = (data?.jobs ?? []) as { name: string; steps?: Step[] }[];
+  return (jobs.find((j) => j.name === "collect") ?? jobs[jobs.length - 1])?.steps ?? [];
+}
+
+/** True when a run started today (UTC) and didn't fail or get cancelled. */
+export function ranToday(runs: { created_at: string; conclusion: string | null }[], now = new Date()) {
+  const today = now.toISOString().slice(0, 10);
+  return runs.some(
+    (r) => r.created_at.slice(0, 10) === today && r.conclusion !== "failure" && r.conclusion !== "cancelled",
+  );
 }

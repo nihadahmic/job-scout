@@ -2,7 +2,8 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { supabaseEnv } from "@/lib/supabase/env";
 
-const PUBLIC_PATHS = ["/login", "/auth/"];
+// /api/cron/ checks its own secret (CRON_SECRET) instead of a login.
+const PUBLIC_PATHS = ["/login", "/auth/", "/api/cron/"];
 
 /** Refreshes the Supabase session cookie and sends signed-out visitors to /login. */
 export async function middleware(request: NextRequest) {

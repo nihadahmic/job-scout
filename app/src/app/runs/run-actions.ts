@@ -53,7 +53,10 @@ export async function getRunStatus(): Promise<Result<{ status: RunStatus }>> {
     };
   }
   try {
-    const runs = await recentRuns(15);
+    // A fallback schedule run that found today already covered finishes in seconds; hide it.
+    const runs = (await recentRuns(15)).filter(
+      (r) => !(r.event === "schedule" && r.status === "completed" && seconds(r.run_started_at ?? r.created_at, r.updated_at) < 90),
+    );
     const latest = runs[0] ?? null;
     // Typical duration: median of recent successful runs.
     const durations = runs

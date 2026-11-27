@@ -11,8 +11,11 @@ name: collect
 #     holding companies.yaml (scripts/import_companies.py, scripts/detect_ats.py)
 
 on:
+  # Main trigger: Vercel Cron at 07:30 UTC (app/vercel.json -> /api/cron/collect). GitHub's
+  # schedule is best-effort (often hours late or skipped), so it is only the fallback and
+  # skips itself if a run already happened today.
   schedule:
-    - cron: "30 7 * * *"   # daily 07:30 UTC
+    - cron: "17 9 * * *"   # fallback, 09:17 UTC
   workflow_dispatch: {}
 
 permissions:
@@ -26,7 +29,29 @@ env:
   DATA_REPO: ${{ vars.DATA_REPO || format('{0}/job-scout-data', github.repository_owner) }}
 
 jobs:
+  gate:
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+    outputs:
+      skip: ${{ steps.check.outputs.skip }}
+    steps:
+      - id: check
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          skip=false
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            n=$(gh run list -R "$GITHUB_REPOSITORY" -w collect.yml --created ">=$(date -u +%F)" \
+              --json databaseId,conclusion \
+              --jq '[.[] | select(.databaseId != ${{ github.run_id }}) | select(.conclusion != "failure" and .conclusion != "cancelled")] | length')
+            if [ "$n" -gt 0 ]; then skip=true; echo "Already ran today; skipping the fallback run."; fi
+          fi
+          echo "skip=$skip" >> "$GITHUB_OUTPUT"
+
   collect:
+    needs: gate
+    if: needs.gate.outputs.skip != 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:

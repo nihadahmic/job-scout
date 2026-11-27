@@ -17,7 +17,7 @@ from screening.prompt import SYSTEM, build_prompt
 
 log = logging.getLogger("screening")
 
-FIELDS = "id,title,company,location_text,salary_text,description"
+FIELDS = "id,source,status,title,company,location_text,salary_text,description"
 # Drop categories that hide a job. A missing "requirement" never hides one: fit is a judgment.
 HIDING_DROPS = {"work_permit", "location", "onsite", "industry"}
 REQUIREMENT_FIT_CAP = 40
@@ -82,7 +82,23 @@ def candidates(store: SupabaseStore, limit: int) -> list[dict[str, Any]]:
         },
     )
     r.raise_for_status()
-    return r.json()
+    jobs = r.json()
+    # Jobs you saved in Notion ("Ready to Apply"): also when already shortlisted, or
+    # rescreened after you pasted a fuller description.
+    r = store.client.get(
+        "/jobs",
+        params={
+            "select": FIELDS,
+            "source": "eq.notion",
+            "status": "in.(new,shortlisted)",
+            "tier": "is.null",
+            "or": "(screened_at.is.null,screening_error.not.is.null)",
+            "limit": limit,
+        },
+    )
+    r.raise_for_status()
+    ids = {j["id"] for j in jobs}
+    return [j for j in r.json() if j["id"] not in ids] + jobs
 
 
 def ask(
@@ -103,8 +119,16 @@ def ask(
 
 
 def apply(
-    store: SupabaseStore, verdict: JobVerdict, model: str, settings: Settings, stats: Stats
+    store: SupabaseStore,
+    verdict: JobVerdict,
+    model: str,
+    settings: Settings,
+    stats: Stats,
+    job: dict[str, Any] | None = None,
 ) -> None:
+    # You picked it yourself: never hide it, always put it in To apply; fit is information.
+    saved = bool(job and job.get("source") == "notion")
+    status = (job or {}).get("status", "new")
     now = utc_now()
     patch: dict[str, Any] = {
         "fit": verdict.fit,
@@ -114,7 +138,7 @@ def apply(
         "screening_model": model,
         "screening_error": None,
     }
-    if verdict.tier == "drop" and verdict.drop_category in HIDING_DROPS:
+    if verdict.tier == "drop" and verdict.drop_category in HIDING_DROPS and not saved:
         reason = verdict.drop_reason or verdict.drop_category.replace("_", " ")
         patch["dropped_reason"] = f"screening:{reason}"[:200]
         stats.dropped += 1
@@ -131,21 +155,32 @@ def apply(
         if tier <= settings.shortlist_max_tier and verdict.fit >= settings.shortlist_min_fit:
             patch["status"] = "shortlisted"
             patch["status_changed_at"] = now
+    if saved and verdict.tier == "drop" and verdict.drop_category in HIDING_DROPS:
+        note = verdict.drop_reason or verdict.drop_category.replace("_", " ")
+        patch["eligibility_note"] = f"Check: {note}"[:300]
+    if saved:
+        patch.pop("status", None)
+        patch.pop("status_changed_at", None)
+        if status == "new":
+            patch["status"] = "shortlisted"
+            patch["status_changed_at"] = now
     r = store.client.patch(
         "/jobs",
-        params={"id": f"eq.{verdict.id}", "status": "eq.new"},
+        params={"id": f"eq.{verdict.id}", "status": f"eq.{status}"},
         json=patch,
         headers={"Prefer": "return=representation"},
     )
     r.raise_for_status()
-    if r.json() and patch.get("status") == "shortlisted":
+    if r.json() and patch.get("status") == "shortlisted" and status == "new":
         store.client.post(
             "/status_history",
             json={
                 "job_id": verdict.id,
                 "from_status": "new",
                 "to_status": "shortlisted",
-                "note": f"Screening: tier {verdict.tier}, fit {verdict.fit}",
+                "note": f"Saved in Notion; screening: tier {verdict.tier}, fit {verdict.fit}"
+                if saved
+                else f"Screening: tier {verdict.tier}, fit {verdict.fit}",
                 "changed_at": now,
             },
         ).raise_for_status()
@@ -204,7 +239,7 @@ def screen(
                 print(f"  {tag:>16} fit {v.fit:>3}  {who} | {v.fit_reason}")
                 stats.screened += 1
                 continue
-            apply(store, v, gemini.last_model, settings, stats)
+            apply(store, v, gemini.last_model, settings, stats, job)
         if missing and not dry_run:
             mark_errors(store, missing, "missing from Gemini's answer", stats)
     return stats

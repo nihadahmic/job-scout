@@ -269,3 +269,24 @@ def test_response_schema_has_no_empty_enum_values():
         JobVerdict.model_validate({**verdict(1, "1", 50), "drop_category": "none"}).drop_category
         == ""
     )
+
+
+def test_jobs_you_saved_in_notion_are_never_hidden_and_always_shortlisted():
+    saved = [{**job(i), "source": "notion"} for i in (1, 2)]
+    db = FakeDb(saved)
+    store = SupabaseStore("https://p.supabase.co", "sb_secret_x", transport=httpx.MockTransport(db))
+    g = gemini_returning(
+        {
+            "results": [
+                verdict(1, "3", 35),
+                verdict(2, "drop", 20, drop="US work permit required", category="work_permit"),
+            ]
+        }
+    )
+    stats = screen(store, g, RULES)
+    j1, j2 = db.jobs["ashby:acme/1"], db.jobs["ashby:acme/2"]
+    assert j1["status"] == "shortlisted" and j1["tier"] == 3 and j1["fit"] == 35
+    assert j2["status"] == "shortlisted" and j2["dropped_reason"] is None
+    assert j2["eligibility_note"] == "Check: US work permit required"
+    assert stats.dropped == 0
+    assert db.history[0]["note"].startswith("Saved in Notion; screening")

@@ -85,3 +85,13 @@ Only eligibility hides a job: a drop must name a category, and only work_permit,
 No top-N cut: with 5 to 20 new jobs a day after the prefilter, a top 10 would be most of them. Instead tier 1 or 2 with fit of at least 60 becomes `shortlisted` (both numbers in `config/rules.yaml`), shown in the Backlog's Shortlist view with Start (to In progress, so onto the Pipeline) and Skip. The Pipeline is unchanged. The day a job was shortlisted is not shown separately: it is the day it was found.
 Screening sends job text, the anonymized experience and a summary of target roles and work types; never the CV, application facts or salary numbers.
 A bug found while testing screening: the HTTP client dropped query strings already in a URL (httpx.URL(url, params=None)), so Greenhouse jobs had no descriptions and Ashby jobs no salaries. Fixed, with a regression test, and the store now fills in a missing description or salary on known jobs when the source provides it.
+
+## 016. Daily trigger from Vercel Cron, GitHub schedule as fallback
+**Date:** 2026-11-27
+GitHub's scheduled runs were hours late (17:51 instead of 07:30 UTC) or skipped. Vercel Cron calls `/api/cron/collect` at 07:30 UTC, which starts the workflow with the app's GitHub token; the request must carry `CRON_SECRET`. The workflow's own schedule (09:17 UTC) stays as a fallback and skips itself if a run already happened that day.
+
+## 017. LinkedIn through the owner's Notion "Applications" database
+**Date:** 2026-11-27
+LinkedIn stays out of the collector (no scraping). Instead the owner saves jobs to the Notion database already used for tracking (Web Clipper, or Share from the LinkedIn app), and `python -m notion_sync` imports it each run, between collection and screening, with a read-only integration shared with that one database.
+No stage or only "Ready to Apply" means saved: a job in the Backlog (source `notion`) that screening scores and always puts in To apply, never hidden, since the owner chose it (an eligibility problem becomes a "Check:" note). A page with a stage maps as in the first import (Applied, Interview/Screening, Offered, Signed, Won't be moving forward). Stages only move a job forward or close it, never backwards, and a job closed in the app is never reopened. A page matching a job another source found (same link, or company and title) updates that job instead of adding a copy. Already-imported pages (`notion:<page id>`) are recognized, and only pages from 2026 on are read.
+The sync writes nothing back to Notion: a write would change each page's "Last edited time", which dates stage changes. `notion_pages` records each page's stages and last edit, so unchanged pages are skipped.

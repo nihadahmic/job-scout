@@ -27,24 +27,11 @@ from collector.enrich import Enricher
 from collector.run import load_config
 from collector.supabase_store import SupabaseStore, _chunks, load_dotenv
 from collector.text import dedupe_key
+from notion_sync.stages import REPLY_STAGES, final_status
 
 ROOT = Path(__file__).resolve().parent.parent
 NOTE = "Imported from Notion"
 APPROX = "Imported from Notion; date is the page's last edit in Notion, so approximate"
-REPLY_STAGES = {"Interview", "Screening", "Reached Out to Me"}
-
-
-def final_status(stages: list[str]) -> str:
-    s = {x.strip() for x in stages}
-    if "Signed ✍️" in s or "Signed" in s:
-        return "accepted"
-    if "Won't be moving forward" in s:
-        return "not_moving_forward"
-    if "Offered 😃" in s or "Offered" in s:
-        return "offer"
-    if s & REPLY_STAGES:
-        return "interviewing"
-    return "applied"
 
 
 def history(app: dict) -> list[dict]:

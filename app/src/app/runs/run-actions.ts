@@ -6,7 +6,7 @@ import { createClient } from "@/lib/supabase/server";
 type Result<T> = ({ ok: true } & T) | { ok: false; error: string };
 
 // Steps worth showing; the rest (checkout, set up job...) are plumbing.
-const SHOWN_STEPS = ["Check secrets", "Install", "Test", "Collect", "Screen"];
+const SHOWN_STEPS = ["Check secrets", "Install", "Test", "Collect", "Notion", "Screen"];
 
 export type RunStatus = {
   configured: boolean;

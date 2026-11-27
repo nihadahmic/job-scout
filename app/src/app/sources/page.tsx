@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic";
 // Detecting a company's ATS fetches its careers page and can take a few seconds.
 export const maxDuration = 60;
 
-const BOARDS = ["himalayas", "remotive", "weworkremotely"];
+const BOARDS = ["himalayas", "remotive", "weworkremotely", "notion"];
 const ATS = ["greenhouse", "lever", "ashby", "workable", "recruitee", "teamtailor", "personio", "breezy", "smartrecruiters", "bamboohr", "pinpoint"];
 
 export default async function SourcesPage() {
@@ -22,6 +22,9 @@ export default async function SourcesPage() {
   const error = watchlist.error ?? feeds.error ?? requests.error ?? settings.error;
   const enabled = new Map((settings.data ?? []).map((s) => [s.source, s.enabled]));
   const summary = (lastRun.data?.summary ?? {}) as Record<string, { fetched?: number; new?: number }>;
+  // Your Notion "Applications" database: pages read and jobs added, from the run's notes.
+  const notion = ((summary as Record<string, unknown>)._meta as { notion?: Record<string, number> } | undefined)?.notion;
+  if (notion) summary.notion = { fetched: notion.pages, new: (notion.new_saved ?? 0) + (notion.new_tracked ?? 0) };
   const builtIns: BuiltIn[] = [...BOARDS, ...ATS].map((source) => ({
     source,
     label: SOURCE_LABELS[source] ?? source,

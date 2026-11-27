@@ -73,7 +73,7 @@ export const SOURCE_LABELS: Record<string, string> = {
   personio: "Personio",
   breezy: "Breezy",
   smartrecruiters: "SmartRecruiters",
-  notion: "Notion (imported)",
+  notion: "Notion (Applications)",
   bamboohr: "BambooHR",
   pinpoint: "Pinpoint",
   feeds: "RSS feeds",

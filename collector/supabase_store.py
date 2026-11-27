@@ -165,6 +165,8 @@ class SupabaseStore:
             "posted_at,description,salary_text,apply_url,extra,dropped_reason",
             "tier": "is.null",
             "status": "eq.new",
+            # jobs you saved or imported yourself are never prefiltered
+            "source": "not.eq.notion",
             "order": "id",
             "limit": 1000,
         }
